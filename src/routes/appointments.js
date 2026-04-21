@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const verifyToken = require('../middleware/auth');
+const { createNotification } = require('./notifications');
 
 // Book an appointment (patients only)
 router.post('/book', verifyToken, async (req, res) => {
@@ -48,6 +49,18 @@ router.post('/book', verifyToken, async (req, res) => {
       [availability_id]
     );
 
+    await createNotification(
+        patient_id,
+        newAppointment.rows[0].appointment_id,
+        `Your appointment has been booked for ${appointment_datetime}`,
+        'Confirmation'
+    );
+    await createNotification(
+        provider_id,
+        newAppointment.rows[0].appointment_id,
+        `You have a new appointment request from a patient`,
+        'Confirmation'
+    );
     res.status(201).json({
       message: 'Appointment booked successfully!',
       appointment: newAppointment.rows[0]
@@ -141,6 +154,12 @@ router.put('/cancel/:appointment_id', verifyToken, async (req, res) => {
       [appointment.rows[0].provider_id, appointment.rows[0].appointment_datetime]
     );
 
+    await createNotification(
+        patient_id,
+        parseInt(appointment_id),
+        'Your appointment has been cancelled',
+        'Cancellation'
+    );
     res.json({ message: 'Appointment cancelled successfully' });
 
   } catch (error) {
@@ -183,6 +202,12 @@ router.put('/status/:appointment_id', verifyToken, async (req, res) => {
       [status, appointment_id]
     );
 
+    await createNotification(
+        appointment.rows[0].patient_id,
+        parseInt(appointment_id),
+        `Your appointment has been ${status}`,
+        status === 'Confirmed' ? 'Confirmation' : 'Cancellation'
+    );
     res.json({ message: `Appointment marked as ${status}` });
 
   } catch (error) {

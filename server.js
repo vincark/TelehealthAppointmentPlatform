@@ -19,6 +19,8 @@ const appointmentRoutes = require('./src/routes/appointments');
 app.use('/api/appointments', appointmentRoutes);
 const userRoutes = require('./src/routes/users');
 app.use('/api/users', userRoutes);
+const notificationRoutes = require('./src/routes/notifications');
+app.use('/api/notifications', notificationRoutes);
 
 
 app.get('/', (req, res) => {
