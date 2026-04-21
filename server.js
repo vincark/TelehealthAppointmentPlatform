@@ -10,6 +10,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Routes
+const authRoutes = require('./src/routes/auth');
+app.use('/api/auth', authRoutes);
+
 app.get('/', (req, res) => {
   res.send('Telehealth API is running!');
 });
