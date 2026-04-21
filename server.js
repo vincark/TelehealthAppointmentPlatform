@@ -17,6 +17,8 @@ const availabilityRoutes = require('./src/routes/availability');
 app.use('/api/availability', availabilityRoutes);
 const appointmentRoutes = require('./src/routes/appointments');
 app.use('/api/appointments', appointmentRoutes);
+const userRoutes = require('./src/routes/users');
+app.use('/api/users', userRoutes);
 
 
 app.get('/', (req, res) => {
