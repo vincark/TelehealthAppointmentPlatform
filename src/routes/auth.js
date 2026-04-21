@@ -20,7 +20,7 @@ router.post('/register', async (req, res) => {
   try {
     // Check if email already exists
     const existingUser = await pool.query(
-      'SELECT * FROM users WHERE email = $1',
+      'SELECT user_id FROM users WHERE email = $1',
       [email]
     );
 
@@ -44,6 +44,60 @@ router.post('/register', async (req, res) => {
     res.status(201).json({
       message: 'Registration successful!',
       user: newUser.rows[0]
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Login
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    // Check if user exists
+    const result = await pool.query(
+      'SELECT user_id, first_name, last_name, email, password_hash, role_id, account_status FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    const user = result.rows[0];
+
+    // Check if account is active
+    if (user.account_status !== 'Active') {
+      return res.status(403).json({ message: 'Account is inactive or suspended' });
+    }
+
+    // Check if password is correct
+    const isMatch = await bcrypt.compare(password, user.password_hash);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // Create a token
+    const jwt = require('jsonwebtoken');
+    const token = jwt.sign(
+      { user_id: user.user_id, role_id: user.role_id },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
+    res.json({
+      message: 'Login successful!',
+      token,
+      user: {
+        user_id: user.user_id,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        role_id: user.role_id
+      }
     });
 
   } catch (error) {
