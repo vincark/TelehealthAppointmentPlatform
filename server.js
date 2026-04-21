@@ -12,6 +12,8 @@ app.use(express.json());
 
 // Routes
 const authRoutes = require('./src/routes/auth');
+const availabilityRoutes = require('./src/routes/availability');
+app.use('/api/availability', availabilityRoutes);
 app.use('/api/auth', authRoutes);
 
 app.get('/', (req, res) => {
