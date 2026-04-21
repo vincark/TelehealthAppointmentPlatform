@@ -12,9 +12,12 @@ app.use(express.json());
 
 // Routes
 const authRoutes = require('./src/routes/auth');
+app.use('/api/auth', authRoutes);
 const availabilityRoutes = require('./src/routes/availability');
 app.use('/api/availability', availabilityRoutes);
-app.use('/api/auth', authRoutes);
+const appointmentRoutes = require('./src/routes/appointments');
+app.use('/api/appointments', appointmentRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('Telehealth API is running!');
