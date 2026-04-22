@@ -17,4 +17,12 @@ const verifyToken = (req, res, next) => {
   }
 };
 
-module.exports = verifyToken;
+// Reusable role guard — pass an array of allowed role_ids
+const verifyRole = (roles) => (req, res, next) => {
+  if (!roles.includes(req.user.role_id)) {
+    return res.status(403).json({ message: 'Unauthorised' });
+  }
+  next();
+};
+
+module.exports = { verifyToken, verifyRole };

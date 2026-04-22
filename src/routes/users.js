@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
-const verifyToken = require('../middleware/auth');
+const { verifyToken, verifyRole } = require('../middleware/auth');
 
 // Get own profile
 router.get('/me', verifyToken, async (req, res) => {
