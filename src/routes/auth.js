@@ -17,6 +17,23 @@ router.post('/register', async (req, res) => {
     health_fund
   } = req.body;
 
+  // Validate inputs
+  if (!first_name || !last_name || !email || !password) {
+    return res.status(400).json({ message: 'Please fill in all required fields' });
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({ 
+      message: 'Password must be at least 8 characters and include uppercase, lowercase, at least a number, and at least a special character (!@#$%^&*)' 
+    });
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+
   try {
     // Check if email already exists
     const existingUser = await pool.query(
@@ -55,6 +72,10 @@ router.post('/register', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
+
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
 
   try {
     // Check if user exists
