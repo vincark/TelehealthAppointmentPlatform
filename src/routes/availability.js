@@ -4,13 +4,9 @@ const pool = require('../config/db');
 const { verifyToken, verifyRole } = require('../middleware/auth');
 
 // Add availability slot (providers only)
-router.post('/add', verifyToken, async (req, res) => {
+router.post('/add', verifyToken, verifyRole(2), async (req, res) => {
   const { slot_start, slot_end } = req.body;
   const provider_id = req.user.user_id;
-
-  if (req.user.role_id !== 2) {
-    return res.status(403).json({ message: 'Only providers can add availability' });
-  }
 
   try {
     const overlapping = await pool.query(
@@ -65,13 +61,9 @@ router.get('/provider/:provider_id', verifyToken, async (req, res) => {
 });
 
 // Delete an availability slot (providers only)
-router.delete('/delete/:availability_id', verifyToken, async (req, res) => {
+router.delete('/delete/:availability_id', verifyToken, verifyRole(2), async (req, res) => {
   const { availability_id } = req.params;
   const provider_id = req.user.user_id;
-
-  if (req.user.role_id !== 2) {
-    return res.status(403).json({ message: 'Only providers can delete availability' });
-  }
 
   try {
     const slot = await pool.query(
