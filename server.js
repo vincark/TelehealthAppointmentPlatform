@@ -13,14 +13,24 @@ app.use(express.json());
 // Routes
 const authRoutes = require('./src/routes/auth');
 app.use('/api/auth', authRoutes);
+
 const availabilityRoutes = require('./src/routes/availability');
 app.use('/api/availability', availabilityRoutes);
+
 const appointmentRoutes = require('./src/routes/appointments');
 app.use('/api/appointments', appointmentRoutes);
+
 const userRoutes = require('./src/routes/users');
 app.use('/api/users', userRoutes);
+
 const notificationRoutes = require('./src/routes/notifications');
 app.use('/api/notifications', notificationRoutes);
+
+const providerRoutes = require('./src/routes/providers');
+app.use('/api/providers', providerRoutes);
+
+const reportRoutes = require('./src/routes/reports');
+app.use('/api/reports', reportRoutes);
 
 
 app.get('/', (req, res) => {
