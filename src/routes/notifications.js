@@ -32,6 +32,20 @@ router.get('/my', verifyToken, async (req, res) => {
   }
 });
 
+// Mark all notifications as read
+router.put('/read/all', verifyToken, async (req, res) => {
+  try {
+    await pool.query(
+      `UPDATE notifications SET is_read = true WHERE user_id = $1`,
+      [req.user.user_id]
+    );
+    res.json({ message: 'All notifications marked as read' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Mark a notification as read
 router.put('/read/:notification_id', verifyToken, async (req, res) => {
   const { notification_id } = req.params;
@@ -58,20 +72,6 @@ router.put('/read/:notification_id', verifyToken, async (req, res) => {
 
     res.json({ message: 'Notification marked as read' });
 
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Mark all notifications as read
-router.put('/read/all', verifyToken, async (req, res) => {
-  try {
-    await pool.query(
-      `UPDATE notifications SET is_read = true WHERE user_id = $1`,
-      [req.user.user_id]
-    );
-    res.json({ message: 'All notifications marked as read' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
