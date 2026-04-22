@@ -5,7 +5,7 @@ const { verifyToken, verifyRole } = require('../middleware/auth');
 const { createNotification } = require('../utils/notifications');
 
 // Book an appointment (patients only)
-router.post('/book', verifyToken, verifyRole(1), async (req, res) => {
+router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
   const { provider_id, availability_id, reason, notes } = req.body;
   const patient_id = req.user.user_id;
 
@@ -110,7 +110,7 @@ router.get('/my', verifyToken, async (req, res) => {
 });
 
 // Cancel an appointment (patients only)
-router.put('/cancel/:appointment_id', verifyToken, verifyRole(1), async (req, res) => {
+router.put('/cancel/:appointment_id', verifyToken, verifyRole([1]), async (req, res) => {
   const { appointment_id } = req.params;
   const patient_id = req.user.user_id;
 
@@ -161,7 +161,7 @@ router.put('/cancel/:appointment_id', verifyToken, verifyRole(1), async (req, re
 });
 
 // Update appointment status (providers only)
-router.put('/status/:appointment_id', verifyToken, verifyRole(2), async (req, res) => {
+router.put('/status/:appointment_id', verifyToken, verifyRole([2]), async (req, res) => {
   const { appointment_id } = req.params;
   const { status } = req.body;
   const provider_id = req.user.user_id;
