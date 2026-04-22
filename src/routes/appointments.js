@@ -206,23 +206,72 @@ router.put('/status/:appointment_id', verifyToken, verifyRole([2]), async (req, 
 
 // Reschedule an appointment (patients only)
 router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (req, res) => {
-  const { appointment_datetime } = req.body;
+  const { appointment_datetime, availability_id } = req.body;
   const { appointment_id } = req.params;
 
   try {
-    const result = await pool.query(
-      `UPDATE appointments 
-       SET appointment_datetime = $1, status = 'Pending'
-       WHERE appointment_id = $2 AND patient_id = $3
-       RETURNING *`,
-      [appointment_datetime, appointment_id, req.user.user_id]
+    // Check the appointment exists and belongs to this patient
+    const appointment = await pool.query(
+      `SELECT * FROM appointments WHERE appointment_id = $1 AND patient_id = $2`,
+      [appointment_id, req.user.user_id]
     );
 
-    if (result.rows.length === 0) {
+    if (appointment.rows.length === 0) {
       return res.status(404).json({ message: 'Appointment not found or not yours' });
     }
 
-    res.json({ message: 'Appointment rescheduled', appointment: result.rows[0] });
+    if (appointment.rows[0].status === 'Cancelled') {
+      return res.status(400).json({ message: 'Cannot reschedule a cancelled appointment' });
+    }
+
+    // Check the new slot exists and is available
+    const slot = await pool.query(
+      `SELECT * FROM availability WHERE availability_id = $1`,
+      [availability_id]
+    );
+
+    if (slot.rows.length === 0) {
+      return res.status(404).json({ message: 'Availability slot not found' });
+    }
+
+    if (slot.rows[0].is_booked) {
+      return res.status(400).json({ message: 'This slot is already booked' });
+    }
+
+    // Free up the old slot
+    await pool.query(
+      `UPDATE availability SET is_booked = false 
+       WHERE provider_id = $1 AND slot_start = $2`,
+      [appointment.rows[0].provider_id, appointment.rows[0].appointment_datetime]
+    );
+
+    // Book the new slot
+    await pool.query(
+      `UPDATE availability SET is_booked = true WHERE availability_id = $1`,
+      [availability_id]
+    );
+
+    // Update the appointment
+    const result = await pool.query(
+      `UPDATE appointments 
+       SET appointment_datetime = $1, status = 'Pending'
+       WHERE appointment_id = $2
+       RETURNING *`,
+      [slot.rows[0].slot_start, appointment_id]
+    );
+
+    await createNotification(
+      req.user.user_id,
+      parseInt(appointment_id),
+      `Your appointment has been rescheduled to ${slot.rows[0].slot_start}`,
+      'Rescheduled'
+    );
+
+    res.json({ 
+      message: 'Appointment rescheduled successfully!', 
+      appointment: result.rows[0] 
+    });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
+const jwt = require('jsonwebtoken');
 
 // Register a new patient
 router.post('/register', async (req, res) => {
@@ -102,7 +103,6 @@ router.post('/login', async (req, res) => {
     }
 
     // Create a token
-    const jwt = require('jsonwebtoken');
     const token = jwt.sign(
       { user_id: user.user_id, role_id: user.role_id },
       process.env.JWT_SECRET,
