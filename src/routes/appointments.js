@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 const { verifyToken, verifyRole } = require('../middleware/auth');
-const { createNotification } = require('./notifications');
+const { createNotification } = require('../utils/notifications');
 
 // Book an appointment (patients only)
 router.post('/book', verifyToken, async (req, res) => {
