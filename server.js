@@ -2,10 +2,20 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const pool = require('./src/config/db');
+const rateLimit = require('express-rate-limit');
 
 dotenv.config();
 
 const app = express();
+
+// Rate limiter for login endpoint
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: 'Too many login attempts, please try again in 15 minutes' }
+});
+
+app.use('/api/auth/login', loginLimiter);
 
 app.use(cors());
 app.use(express.json());
