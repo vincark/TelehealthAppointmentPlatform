@@ -3,6 +3,12 @@ const router = express.Router();
 const pool = require('../config/db');
 const { verifyToken, verifyRole } = require('../middleware/auth');
 const { createNotification } = require('../utils/notifications');
+const { 
+  sendConfirmationEmail, 
+  sendCancellationEmail,
+  sendRescheduledEmail,
+  sendStatusUpdateEmail 
+} = require('../utils/email');
 
 // Book an appointment (patients only)
 router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
@@ -56,6 +62,25 @@ router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
         newAppointment.rows[0].appointment_id,
         `You have a new appointment request from a patient`,
         'Confirmation'
+    );
+    // Get patient and provider details for email
+    const patientResult = await pool.query(
+      'SELECT first_name, last_name, email FROM users WHERE user_id = $1',
+      [patient_id]
+    );
+    const providerResult = await pool.query(
+      'SELECT first_name, last_name FROM users WHERE user_id = $1',
+      [provider_id]
+    );
+
+    const patient = patientResult.rows[0];
+    const provider = providerResult.rows[0];
+
+    await sendConfirmationEmail(
+      patient.email,
+      `${patient.first_name} ${patient.last_name}`,
+      `Dr ${provider.first_name} ${provider.last_name}`,
+      appointment_datetime
     );
     res.status(201).json({
       message: 'Appointment booked successfully!',
@@ -152,6 +177,17 @@ router.put('/cancel/:appointment_id', verifyToken, verifyRole([1]), async (req, 
         'Your appointment has been cancelled',
         'Cancellation'
     );
+    const patientResult = await pool.query(
+      'SELECT first_name, last_name, email FROM users WHERE user_id = $1',
+      [patient_id]
+    );
+    const patient = patientResult.rows[0];
+
+    await sendCancellationEmail(
+      patient.email,
+      `${patient.first_name} ${patient.last_name}`,
+      appointment.rows[0].appointment_datetime
+    );
     res.json({ message: 'Appointment cancelled successfully' });
 
   } catch (error) {
@@ -195,6 +231,25 @@ router.put('/status/:appointment_id', verifyToken, verifyRole([2]), async (req, 
         parseInt(appointment_id),
         `Your appointment has been ${status}`,
         status === 'Confirmed' ? 'Confirmation' : 'Cancellation'
+    );
+    const patientResult = await pool.query(
+      'SELECT first_name, last_name, email FROM users WHERE user_id = $1',
+      [appointment.rows[0].patient_id]
+    );
+    const providerResult = await pool.query(
+      'SELECT first_name, last_name FROM users WHERE user_id = $1',
+      [provider_id]
+    );
+
+    const patient = patientResult.rows[0];
+    const provider = providerResult.rows[0];
+
+    await sendStatusUpdateEmail(
+      patient.email,
+      `${patient.first_name} ${patient.last_name}`,
+      `Dr ${provider.first_name} ${provider.last_name}`,
+      appointment.rows[0].appointment_datetime,
+      status
     );
     res.json({ message: `Appointment marked as ${status}` });
 
@@ -267,6 +322,24 @@ router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (r
       'Rescheduled'
     );
 
+    const patientResult = await pool.query(
+      'SELECT first_name, last_name, email FROM users WHERE user_id = $1',
+      [req.user.user_id]
+    );
+    const providerResult = await pool.query(
+      'SELECT first_name, last_name FROM users WHERE user_id = $1',
+      [appointment.rows[0].provider_id]
+    );
+
+    const patient = patientResult.rows[0];
+    const provider = providerResult.rows[0];
+
+    await sendRescheduledEmail(
+      patient.email,
+      `${patient.first_name} ${patient.last_name}`,
+      `Dr ${provider.first_name} ${provider.last_name}`,
+      slot.rows[0].slot_start
+    );
     res.json({ 
       message: 'Appointment rescheduled successfully!', 
       appointment: result.rows[0] 
