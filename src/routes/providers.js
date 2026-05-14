@@ -3,12 +3,12 @@ const router = express.Router();
 const pool = require('../config/db');
 const { verifyToken, verifyRole } = require('../middleware/auth');
 
-// Get all providers (any authenticated user)
-router.get('/', verifyToken, async (req, res) => {
+// Get all providers (public)
+router.get('/', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
-              p.specialisation, p.degree, p.spoken_language, p.bio, p.sex
+              p.specialisation, p.degree, p.spoken_language, p.bio, p.sex, p.profile_picture
        FROM users u
        LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
        WHERE u.role_id = 2`
@@ -20,12 +20,12 @@ router.get('/', verifyToken, async (req, res) => {
   }
 });
 
-// Get a single provider by ID
-router.get('/:id', verifyToken, async (req, res) => {
+// Get a single provider by ID (public)
+router.get('/:id', async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
-              p.specialisation, p.degree, p.spoken_language, p.bio, p.sex
+              p.specialisation, p.degree, p.spoken_language, p.bio, p.sex, p.profile_picture
        FROM users u
        LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
        WHERE u.user_id = $1 AND u.role_id = 2`,
@@ -43,15 +43,15 @@ router.get('/:id', verifyToken, async (req, res) => {
 
 // Create or update own provider profile (providers only)
 router.post('/profile', verifyToken, verifyRole([2]), async (req, res) => {
-  const { specialisation, degree, sex, spoken_language, bio } = req.body;
+  const { specialisation, degree, sex, spoken_language, bio, profile_picture } = req.body;
   try {
     const result = await pool.query(
-      `INSERT INTO provider_profiles (provider_id, specialisation, degree, sex, spoken_language, bio)
-       VALUES ($1, $2, $3, $4, $5, $6)
+      `INSERT INTO provider_profiles (provider_id, specialisation, degree, sex, spoken_language, bio, profile_picture)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
        ON CONFLICT (provider_id)
-       DO UPDATE SET specialisation = $2, degree = $3, sex = $4, spoken_language = $5, bio = $6
+       DO UPDATE SET specialisation = $2, degree = $3, sex = $4, spoken_language = $5, bio = $6, profile_picture = $7
        RETURNING *`,
-      [req.user.user_id, specialisation, degree, sex, spoken_language, bio]
+      [req.user.user_id, specialisation, degree, sex, spoken_language, bio, profile_picture ?? null]
     );
     res.status(201).json({ profile: result.rows[0] });
   } catch (error) {

@@ -31,26 +31,32 @@ router.get('/me', verifyToken, async (req, res) => {
 // Update own profile
 router.put('/me', verifyToken, async (req, res) => {
   const { user_id } = req.user;
-  const { phone, address, emergency_contact, health_fund } = req.body;
+  const { first_name, last_name, date_of_birth, phone, address, emergency_contact, health_fund } = req.body;
+
+  const validFunds = ['Medicare', 'Veterans Affairs', 'Concession', 'Private Insurance', 'None'];
+  if (health_fund && !validFunds.includes(health_fund)) {
+    return res.status(400).json({ message: 'Invalid health fund value.' });
+  }
 
   try {
     const updated = await pool.query(
-      `UPDATE users 
-       SET phone = COALESCE($1, phone),
-           address = COALESCE($2, address),
-           emergency_contact = COALESCE($3, emergency_contact),
-           health_fund = COALESCE($4, health_fund)
-       WHERE user_id = $5
-       RETURNING user_id, first_name, last_name, email, 
-                 phone, address, emergency_contact, health_fund`,
-      [phone, address, emergency_contact, health_fund, user_id]
+      `UPDATE users
+       SET first_name        = COALESCE($1, first_name),
+           last_name         = COALESCE($2, last_name),
+           date_of_birth     = COALESCE($3, date_of_birth),
+           phone             = COALESCE($4, phone),
+           address           = COALESCE($5, address),
+           emergency_contact = COALESCE($6, emergency_contact),
+           health_fund       = COALESCE($7, health_fund)
+       WHERE user_id = $8
+       RETURNING user_id, first_name, last_name, email,
+                 date_of_birth, phone, address, emergency_contact, health_fund`,
+      [first_name || null, last_name || null, date_of_birth || null,
+       phone || null, address || null, emergency_contact || null,
+       health_fund || null, user_id]
     );
 
-    res.json({
-      message: 'Profile updated successfully!',
-      user: updated.rows[0]
-    });
-
+    res.json({ message: 'Profile updated successfully!', user: updated.rows[0] });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

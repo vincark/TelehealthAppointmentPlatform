@@ -4,63 +4,47 @@ const bcrypt = require('bcrypt');
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
 
-// Register a new patient
+// Register a new patient — only email + password required at sign-up
+// Everything else (name, DOB, address, etc.) is filled in via the patient portal profile tab
 router.post('/register', async (req, res) => {
-  const {
-    first_name,
-    last_name,
-    email,
-    password,
-    phone,
-    date_of_birth,
-    address,
-    emergency_contact,
-    health_fund
-  } = req.body;
+  const { email, password } = req.body;
 
-  // Validate inputs
-  if (!first_name || !last_name || !email || !password) {
-    return res.status(400).json({ message: 'Please fill in all required fields' });
-  }
-
-  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
-  if (!passwordRegex.test(password)) {
-    return res.status(400).json({ 
-      message: 'Password must be at least 8 characters and include uppercase, lowercase, at least a number, and at least a special character (!@#$%^&*)' 
-    });
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required.' });
   }
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!emailRegex.test(email)) {
-    return res.status(400).json({ message: 'Invalid email format' });
+    return res.status(400).json({ message: 'Invalid email format.' });
+  }
+
+  const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    return res.status(400).json({
+      message: 'Password must be at least 8 characters and include uppercase, lowercase, a number, and a special character (!@#$%^&*).'
+    });
   }
 
   try {
-    // Check if email already exists
     const existingUser = await pool.query(
-      'SELECT user_id FROM users WHERE email = $1',
-      [email]
+      'SELECT user_id FROM users WHERE email = $1', [email]
     );
-
     if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: 'Email already registered' });
+      return res.status(400).json({ message: 'An account with this email already exists.' });
     }
 
-    // Scramble the password before saving
     const salt = await bcrypt.genSalt(10);
     const password_hash = await bcrypt.hash(password, salt);
 
-    // Save the new user to the database
     const newUser = await pool.query(
-      `INSERT INTO users 
-        (first_name, last_name, email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund, role_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1)
+      `INSERT INTO users (email, password_hash, role_id)
+       VALUES ($1, $2, 1)
        RETURNING user_id, first_name, last_name, email, role_id`,
-      [first_name, last_name, email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund]
+      [email, password_hash]
     );
 
     res.status(201).json({
-      message: 'Registration successful!',
+      message: 'Account created successfully!',
       user: newUser.rows[0]
     });
 

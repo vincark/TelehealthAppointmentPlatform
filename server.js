@@ -46,6 +46,9 @@ app.use('/api/providers', providerRoutes);
 const reportRoutes = require('./src/routes/reports');
 app.use('/api/reports', reportRoutes);
 
+const adminRoutes = require('./src/routes/admin');
+app.use('/api/admin', adminRoutes);
+
 
 app.get('/', (req, res) => {
   res.send('Telehealth API is running!');
