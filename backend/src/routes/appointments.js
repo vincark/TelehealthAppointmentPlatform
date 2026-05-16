@@ -351,4 +351,43 @@ router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (r
   }
 });
 
+// Add consultation notes (providers only)
+router.put('/consult/:appointment_id', verifyToken, verifyRole([2]), async (req, res) => {
+  const { appointment_id } = req.params;
+  const { notes, prescription } = req.body;
+  const provider_id = req.user.user_id;
+
+  if (!notes) {
+    return res.status(400).json({ message: 'Consultation notes are required' });
+  }
+
+  try {
+    const appointment = await pool.query(
+      `SELECT * FROM appointments WHERE appointment_id = $1`,
+      [appointment_id]
+    );
+
+    if (appointment.rows.length === 0) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    if (appointment.rows[0].provider_id !== provider_id) {
+      return res.status(403).json({ message: 'You can only add notes to your own appointments' });
+    }
+
+    await pool.query(
+      `UPDATE appointments 
+       SET notes = $1, status = 'Completed'
+       WHERE appointment_id = $2`,
+      [notes, appointment_id]
+    );
+
+    res.json({ message: 'Consultation notes saved successfully!' });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
