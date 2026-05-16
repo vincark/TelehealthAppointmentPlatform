@@ -351,4 +351,74 @@ router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (r
   }
 });
 
+// Save consultation notes + prescription and mark as Completed (providers only)
+router.put('/consult/:appointment_id', verifyToken, verifyRole([2]), async (req, res) => {
+  const { appointment_id } = req.params;
+  const { notes, prescription } = req.body;
+  const provider_id = req.user.user_id;
+
+  try {
+    const appointment = await pool.query(
+      `SELECT * FROM appointments WHERE appointment_id = $1`,
+      [appointment_id]
+    );
+
+    if (appointment.rows.length === 0) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    if (appointment.rows[0].provider_id !== provider_id) {
+      return res.status(403).json({ message: 'You can only add notes to your own appointments' });
+    }
+
+    const updated = await pool.query(
+      `UPDATE appointments
+       SET notes = $1, prescription = $2, status = 'Completed'
+       WHERE appointment_id = $3
+       RETURNING *`,
+      [notes || null, prescription || null, appointment_id]
+    );
+
+    await createNotification(
+      appointment.rows[0].patient_id,
+      parseInt(appointment_id),
+      'Your consultation notes and prescription are now available in your Medical History',
+      'Confirmation'
+    );
+
+    res.json({ message: 'Consultation notes saved', appointment: updated.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get consultation notes for a specific appointment (patient must own it)
+router.get('/:appointment_id/notes', verifyToken, async (req, res) => {
+  const { appointment_id } = req.params;
+  const { user_id, role_id } = req.user;
+
+  try {
+    const result = await pool.query(
+      `SELECT a.appointment_id, a.notes, a.prescription, a.status,
+              a.appointment_datetime, a.reason,
+              u.first_name AS provider_first_name, u.last_name AS provider_last_name
+       FROM appointments a
+       JOIN users u ON a.provider_id = u.user_id
+       WHERE a.appointment_id = $1
+         AND (a.patient_id = $2 OR a.provider_id = $2)`,
+      [appointment_id, user_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Appointment not found' });
+    }
+
+    res.json({ appointment: result.rows[0] });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;
