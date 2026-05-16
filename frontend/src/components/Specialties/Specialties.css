@@ -1,0 +1,123 @@
+/* ============================================
+   SPECIALTIES SECTION
+   ============================================ */
+
+.specialties {
+  padding-block: var(--space-20);
+  background:linear-gradient(
+    180deg,
+    var(--color-bg) 0%,
+    var(--color-primary-soft) 100%
+  ) ;
+}
+
+.specialties-inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+}
+
+/* ===== HEADER ===== */
+.specialties-header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto var(--space-12);
+}
+
+.specialties-title {
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  color: var(--color-ink);
+  margin-bottom: var(--space-4);
+  letter-spacing: -0.02em;
+}
+
+.specialties-lede {
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  line-height: 1.6;
+}
+
+/* ===== GRID ===== */
+.specialties-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-5);
+}
+
+/* ===== CARD ===== */
+.specialty-card {
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-8) var(--space-5);
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.specialty-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* ===== ICON CONTAINER ===== */
+.specialty-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-md);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Icon colors — match each color name to a CSS variable */
+.specialty-icon-mint     { background: var(--color-pastel-mint);     color: var(--color-primary-dark); }
+.specialty-icon-yellow   { background: var(--color-pastel-yellow);   color: #B45309; }
+.specialty-icon-peach    { background: var(--color-pastel-peach);    color: #C2410C; }
+.specialty-icon-rose     { background: var(--color-pastel-rose);     color: #BE123C; }
+.specialty-icon-lavender { background: var(--color-pastel-lavender); color: #4338CA; }
+.specialty-icon-pink     { background: var(--color-pastel-pink);     color: #BE185D; }
+.specialty-icon-blue     { background: var(--color-pastel-blue);     color: #1D4ED8; }
+.specialty-icon-grey     { background: var(--color-pastel-grey);     color: var(--color-text); }
+
+/* ===== NAME ===== */
+.specialty-name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--color-ink);
+  text-align: center;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 1024px) {
+  .specialties-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .specialties-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .specialties-title {
+    font-size: var(--text-3xl);
+  }
+}
+
+@media (max-width: 480px) {
+  .specialties-grid {
+    grid-template-columns: 1fr;
+  }
+}
