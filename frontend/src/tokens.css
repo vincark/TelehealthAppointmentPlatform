@@ -1,122 +1,114 @@
-/*  DESIGN TOKENS
-   Single source  for colors, fonts,
-   sizes. once the  value here are changed  ,the  whole
-   app updates automatically.
-    */
+/* DESIGN TOKENS
+   Single source for colors, fonts, and sizes.
+   Once the values here are changed, the whole app updates automatically.
+*/
 
 :root {
-  //Colors deefinition 
-
   /* Primary green family — buttons, links, accents */
-  --color-primary:        #10B981;   //main green 
-  --color-primary-dark:   #047857;   // hover state
-  --color-primary-soft:   #D1FAE5;   // pale mint — pill backgrounds 
+  --color-primary: #10B981;        /* main green */
+  --color-primary-dark: #047857;   /* hover state */
+  --color-primary-soft: #D1FAE5;   /* pale mint — pill backgrounds */
 
-  // Text colors 
-  --color-ink:            #0F1B3D;   // deep navy — headings 
-  --color-text:           #475569;   // medium grey — body text 
-  --color-text-muted:     #94A3B8;   // lighter grey — captions 
+  /* Text colors */
+  --color-ink: #0F1B3D;            /* deep navy — headings */
+  --color-text: #475569;           /* medium grey — body text */
+  --color-text-muted: #94A3B8;     /* lighter grey — captions */
 
-  //Backgrounds 
-  --color-bg:             #FFFFFF;   // main white 
-  --color-bg-alt:         #F0F9F4;   // very subtle mint 
-  --color-bg-dark:        #0F1B3D;   // deep navy — footer, CTA 
+  /* Backgrounds */
+  --color-bg: #FFFFFF;             /* main white */
+  --color-bg-alt: #F0F9F4;         /* very subtle mint */
+  --color-bg-dark: #0F1B3D;        /* deep navy — footer, CTA */
 
-  // Borders 
-  --color-border:         #E2E8F0;   
+  /* Borders */
+  --color-border: #E2E8F0;
 
-  // Accent colors (used sparingly) 
-  // Accent colors 
-  --color-accent-yellow:  #FCD34D;   // star ratings 
-  --color-accent-peach:   #FDA4AF;   // peach/coral 
+  /* Accent colors */
+  --color-accent-yellow: #FCD34D;  /* star ratings */
+  --color-accent-peach: #FDA4AF;   /* peach/coral */
 
-  //Pastel backgrounds for specialty cards 
-   
-  --color-pastel-mint:    #D1FAE5;   // same as primary-soft
-  --color-pastel-peach:   #FFEDD5;   // warm peach 
-  --color-pastel-yellow:  #FEF3C7;   // soft yellow 
-  --color-pastel-lavender:#E0E7FF;   // lavender 
-  --color-pastel-pink:    #FCE7F3;   // soft pink 
-  --color-pastel-rose:    #FFE4E6;   // dusty rose 
-  --color-pastel-blue:    #DBEAFE;   // soft blue 
-  --color-pastel-grey:    #F1F5F9;   //neutral 
+  /* Pastel backgrounds for specialty cards */
+  --color-pastel-mint: #D1FAE5;
+  --color-pastel-peach: #FFEDD5;
+  --color-pastel-yellow: #FEF3C7;
+  --color-pastel-lavender: #E0E7FF;
+  --color-pastel-pink: #FCE7F3;
+  --color-pastel-rose: #FFE4E6;
+  --color-pastel-blue: #DBEAFE;
+  --color-pastel-grey: #F1F5F9;
 
-  //Typography 
+  /* Typography */
   --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* Font sizes — using rem (1rem = 16px) */
-  --text-xs:   0.75rem;   // 12px 
-  --text-sm:   0.875rem;  // 14px 
-  --text-base: 1rem;      // 16px 
-  --text-lg:   1.125rem;  // 18px 
-  --text-xl:   1.25rem;   // 20px
-  --text-2xl:  1.5rem;    // 24px 
-  --text-3xl:  2rem;      // 32px 
-  --text-4xl:  3rem;      // 48px 
-  --text-5xl:  4rem;      // 64px 
+  --text-xs: 0.75rem;      /* 12px */
+  --text-sm: 0.875rem;     /* 14px */
+  --text-base: 1rem;       /* 16px */
+  --text-lg: 1.125rem;     /* 18px */
+  --text-xl: 1.25rem;      /* 20px */
+  --text-2xl: 1.5rem;      /* 24px */
+  --text-3xl: 2rem;        /* 32px */
+  --text-4xl: 3rem;        /* 48px */
+  --text-5xl: 4rem;        /* 64px */
 
-  //Spacing flexibility using rem and comparing to original px 
-  --space-1:  0.25rem;    // 4px 
-  --space-2:  0.5rem;     // 8px 
-  --space-3:  0.75rem;    // 12px 
-  --space-4:  1rem;       // 16px 
-  --space-5:  1.25rem;    //20px 
-  --space-6:  1.5rem;     // 24px 
-  --space-8:  2rem;       // 32px 
-  --space-10: 2.5rem;     // 40px 
-  --space-12: 3rem;       // 48px 
-  --space-16: 4rem;       // 64px 
-  --space-20: 5rem;       // 80px 
+  /* Spacing */
+  --space-1: 0.25rem;      /* 4px */
+  --space-2: 0.5rem;       /* 8px */
+  --space-3: 0.75rem;      /* 12px */
+  --space-4: 1rem;         /* 16px */
+  --space-5: 1.25rem;      /* 20px */
+  --space-6: 1.5rem;       /* 24px */
+  --space-8: 2rem;         /* 32px */
+  --space-10: 2.5rem;      /* 40px */
+  --space-12: 3rem;        /* 48px */
+  --space-16: 4rem;        /* 64px */
+  --space-20: 5rem;        /* 80px */
 
-  //Border radius 
-  --radius-sm:   0.5rem;     // 8px — small elements 
-  --radius-md:   0.75rem;    // 12px — inputs 
-  --radius-lg:   1rem;       // 16px — cards 
-  --radius-xl:   1.5rem;     //24px — large cards 
-  --radius-pill: 9999px;     // pill-shaped buttons 
+  /* Border radius */
+  --radius-sm: 0.5rem;     /* 8px */
+  --radius-md: 0.75rem;    /* 12px */
+  --radius-lg: 1rem;       /* 16px */
+  --radius-xl: 1.5rem;     /* 24px */
+  --radius-pill: 9999px;   /* pill-shaped buttons */
 
-  //Shadows 
+  /* Shadows */
   --shadow-sm: 0 1px 2px rgba(15, 27, 61, 0.04);
   --shadow-md: 0 4px 12px rgba(15, 27, 61, 0.06);
   --shadow-lg: 0 12px 32px rgba(15, 27, 61, 0.08);
 
-  //Layout 
+  /* Layout */
   --container-max: 1280px;
-  --nav-height:    80px;
+  --nav-height: 80px;
 
-  // Navbar — using its own tokens so dark mode can override them 
-   
---color-navbar-bg:     rgba(255, 255, 255, 0.85);
---color-btn-secondary-bg: rgba(255, 255, 255, 0.6);
+  /* Navbar */
+  --color-navbar-bg: rgba(255, 255, 255, 0.85);
+  --color-btn-secondary-bg: rgba(255, 255, 255, 0.6);
 }
-/* 
-   DARK THEME OVERRIDES
-   
+
+/* DARK THEME OVERRIDES
    When [data-theme="dark"] is on the <html> tag,
    these values override the light defaults above.
-   */
+*/
 
 [data-theme="dark"] {
-  // Backgrounds flip to dark 
-  --color-bg:             #0F1B3D;   //was white — now deep navy 
-  --color-bg-alt:         #1A2851;   // slightly lighter dark 
-  --color-bg-dark:        #0A1230;   //darkest — for footer/CTA 
+  /* Backgrounds flip to dark */
+  --color-bg: #0F1B3D;
+  --color-bg-alt: #1A2851;
+  --color-bg-dark: #0A1230;
 
-  // Text flips to light 
-  --color-ink:            #F1F5F9;   // was deep navy — now light 
-  --color-text:           #CBD5E1;   // lighter grey 
-  --color-text-muted:     #94A3B8;   // same — works on both 
+  /* Text flips to light */
+  --color-ink: #F1F5F9;
+  --color-text: #CBD5E1;
+  --color-text-muted: #94A3B8;
 
-  // Borders subtler in dark 
-  --color-border:         #2D3D6B;
+  /* Borders */
+  --color-border: #2D3D6B;
 
-  /* Primary green stays the same — it works in both modes */
-  /* (Just slightly brighter for better contrast) */
-  --color-primary:        #10B981;
-  --color-primary-dark:   #059669;
-  --color-primary-soft:   rgba(16, 185, 129, 0.15);  // translucent on dark 
+  /* Primary green */
+  --color-primary: #10B981;
+  --color-primary-dark: #059669;
+  --color-primary-soft: rgba(16, 185, 129, 0.15);
 
-  // Navbar swaps to dark version */
---color-navbar-bg:     rgba(15, 27, 61, 0.85);   // dark navy translucent 
---color-btn-secondary-bg: rgba(255, 255, 255, 0.08);  // very subtle on dark 
+  /* Navbar dark mode */
+  --color-navbar-bg: rgba(15, 27, 61, 0.85);
+  --color-btn-secondary-bg: rgba(255, 255, 255, 0.08);
 }

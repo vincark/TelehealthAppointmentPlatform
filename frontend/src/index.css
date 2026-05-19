@@ -1,12 +1,12 @@
 /* index.css — global styles + token import */
 
-//Import design tokens 
+/* Import design tokens */
 @import './tokens.css';
 
-//Load Google view login 
+/* Load Google font */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-//Reset 
+/* Reset */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -16,7 +16,7 @@
   padding: 0;
 }
 
-//Base 
+/* Base */
 body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
@@ -42,7 +42,7 @@ button {
   background: none;
 }
 
-//Headings definition 
+/* Headings definition */
 h1, h2, h3, h4, h5, h6 {
   color: var(--color-ink);
   font-weight: 700;
