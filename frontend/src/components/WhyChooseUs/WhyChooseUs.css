@@ -1,4 +1,4 @@
-//Why choose us 
+/*Why choose us */
 
 .why {
   padding-block: var(--space-20);
@@ -15,7 +15,7 @@
   padding: 0 var(--space-6);
 }
 
-//why header 
+/*why header */
 .why-header {
   text-align: center;
   max-width: 620px;
@@ -36,7 +36,7 @@
   line-height: 1.6;
 }
 
-//grid 
+/*grid */
 .why-grid {
   list-style: none;
   padding: 0;
@@ -47,7 +47,7 @@
   gap: var(--space-6);
 }
 
-//card 
+/*card */
 .why-card {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -62,7 +62,7 @@
   transform: translateY(-2px);
 }
 
-//Icon
+/*Icon*/
 .why-icon {
   display: flex;
   align-items: center;
@@ -89,7 +89,7 @@
   line-height: 1.6;
 }
 
-//empty (testimonals holder)
+/*empty (testimonals holder*/
 .why-empty {
   display: flex;
   align-items: center;
@@ -123,7 +123,7 @@
   line-height: 1.5;
 }
 
-//Responsive design(laptop,tab,phone)
+/*Responsive design(laptop,tab,phone)*/
 @media (max-width: 1024px) {
   .why-grid {
     grid-template-columns: repeat(2, 1fr);
