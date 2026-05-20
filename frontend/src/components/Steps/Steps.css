@@ -1,6 +1,4 @@
-/* ============================================
-   STEPS SECTION
-   ============================================ */
+//   Steps 
 
 
   .steps {
@@ -19,7 +17,7 @@
   padding: 0 var(--space-6);
 }
 
-/* ===== HEADER ===== */
+//header 
 .steps-header {
   text-align: center;
   max-width: 620px;
@@ -40,7 +38,7 @@
   line-height: 1.6;
 }
 
-/* ===== GRID ===== */
+//grid 
 .steps-grid {
   list-style: none;
   padding: 0;
@@ -51,7 +49,7 @@
   gap: var(--space-5);
 }
 
-/* ===== STEP CARD ===== */
+//Step card 
 .step-card {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -66,7 +64,7 @@
   transform: translateY(-2px);
 }
 
-/* Top row — icon + STEP X label */
+//Icon and label 
 .step-top {
   display: flex;
   align-items: center;
@@ -93,7 +91,7 @@
   color: var(--color-text-muted);
 }
 
-/* Title + description */
+//Title +description 
 .step-title {
   font-size: var(--text-xl);
   font-weight: 700;
@@ -109,7 +107,7 @@
   line-height: 1.6;
 }
 
-/* ===== RESPONSIVE ===== */
+//Responsive design 
 @media (max-width: 1024px) {
   .steps-grid {
     grid-template-columns: repeat(2, 1fr);
