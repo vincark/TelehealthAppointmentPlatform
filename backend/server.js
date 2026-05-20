@@ -27,7 +27,7 @@ app.use(cors({
 
 app.use(express.json());
 
-// Session — MUST be before passport!
+// Session
 app.use(session({
   secret: process.env.JWT_SECRET,
   resave: false,
@@ -35,7 +35,7 @@ app.use(session({
   cookie: { secure: false }
 }));
 
-// Passport — MUST be after session!
+// Passport
 app.use(passport.initialize());
 app.use(passport.session());
 
