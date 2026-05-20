@@ -1,4 +1,4 @@
-//Specialities section 
+/*Specialities section */
 
 .specialties {
   padding-block: var(--space-20);
@@ -15,7 +15,7 @@
   padding: 0 var(--space-6);
 }
 
-//header 
+/*header */
 .specialties-header {
   text-align: center;
   max-width: 640px;
@@ -36,7 +36,7 @@
   line-height: 1.6;
 }
 
-//gRid 
+/*gRid */
 .specialties-grid {
   list-style: none;
   padding: 0;
@@ -47,7 +47,7 @@
   gap: var(--space-5);
 }
 
-//Card 
+/*Card */
 .specialty-card {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -69,7 +69,7 @@
   box-shadow: var(--shadow-lg);
 }
 
-//Icon Container
+/*Icon Container*/
 .specialty-icon {
   width: 56px;
   height: 56px;
@@ -90,7 +90,7 @@
 .specialty-icon-blue     { background: var(--color-pastel-blue);     color: #1D4ED8; }
 .specialty-icon-grey     { background: var(--color-pastel-grey);     color: var(--color-text); }
 
-//Speciality name 
+/*Speciality name */
 .specialty-name {
   font-size: var(--text-base);
   font-weight: 600;
@@ -98,7 +98,7 @@
   text-align: center;
 }
 
-//Media design
+/*Media design*/
 @media (max-width: 1024px) {
   .specialties-grid {
     grid-template-columns: repeat(3, 1fr);
