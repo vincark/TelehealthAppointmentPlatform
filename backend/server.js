@@ -5,6 +5,7 @@ const pool = require('./src/config/db');
 const rateLimit = require('express-rate-limit');
 
 dotenv.config();
+console.log('FRONTEND_URL:', process.env.FRONTEND_URL);
 
 const app = express();
 
@@ -18,7 +19,7 @@ const loginLimiter = rateLimit({
 app.use('/api/auth/login', loginLimiter);
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
