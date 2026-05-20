@@ -1,4 +1,4 @@
-//   Steps 
+/*  Steps */
 
 
   .steps {
@@ -17,7 +17,7 @@
   padding: 0 var(--space-6);
 }
 
-//header 
+/*header */
 .steps-header {
   text-align: center;
   max-width: 620px;
@@ -38,7 +38,7 @@
   line-height: 1.6;
 }
 
-//grid 
+/*grid */
 .steps-grid {
   list-style: none;
   padding: 0;
@@ -49,7 +49,7 @@
   gap: var(--space-5);
 }
 
-//Step card 
+/*Step card*/
 .step-card {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -64,7 +64,7 @@
   transform: translateY(-2px);
 }
 
-//Icon and label 
+/*Icon and label */
 .step-top {
   display: flex;
   align-items: center;
@@ -91,7 +91,7 @@
   color: var(--color-text-muted);
 }
 
-//Title +description 
+/*Title +description */
 .step-title {
   font-size: var(--text-xl);
   font-weight: 700;
@@ -107,7 +107,7 @@
   line-height: 1.6;
 }
 
-//Responsive design 
+/*Responsive design*/ 
 @media (max-width: 1024px) {
   .steps-grid {
     grid-template-columns: repeat(2, 1fr);
