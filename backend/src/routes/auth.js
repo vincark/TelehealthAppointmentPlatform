@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
+const { sendWelcomeEmail } = require('../utils/email');
 
 // Register a new patient
 router.post('/register', async (req, res) => {
@@ -58,6 +59,14 @@ router.post('/register', async (req, res) => {
        RETURNING user_id, first_name, last_name, email, role_id`,
       [first_name, last_name, email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund]
     );
+
+    // Send welcome email
+    try {
+      await sendWelcomeEmail(email, first_name);
+      console.log('Welcome email sent to:', email);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+    }
 
     res.status(201).json({
       message: 'Registration successful!',
