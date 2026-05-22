@@ -5,7 +5,7 @@
     */
 
 :root {
-  /*Colors deefinition */
+  /*Colors definition */
 
   /* Primary green family — buttons, links, accents */
   --color-primary:        #10B981;   /*main green */
@@ -55,7 +55,7 @@
   --text-4xl:  3rem;      /* 48px */
   --text-5xl:  4rem;      /* 64px */
 
-  //Spacing flexibility using rem and comparing to original px 
+  /* Spacing flexibility using rem and comparing to original px */
   --space-1:  0.25rem;    /* 4px */
   --space-2:  0.5rem;     /* 8px */
   --space-3:  0.75rem;    /* 12px */
@@ -97,7 +97,7 @@
    */
 
 [data-theme="dark"] {
-  // Backgrounds flip to dark 
+  /* Backgrounds flip to dark */
   --color-bg:             #0F1B3D;   /*was white — now deep navy */
   --color-bg-alt:         #1A2851;   /* slightly lighter dark */
   --color-bg-dark:        #0A1230;   /*darkest — for footer/CTA */
