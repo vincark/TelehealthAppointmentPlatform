@@ -1,6 +1,7 @@
 import './Navbar.css';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
+import { useLocation } from 'react-router-dom';
 
 /**
  * Top navigation bar.
@@ -10,6 +11,7 @@ import { useTheme } from '../../hooks/useTheme';
  */
 function Navbar() {
   const { theme, toggleTheme } = useTheme();
+  const { pathname } = useLocation();
 
   function handleBookNow(e) {
     e.preventDefault();
@@ -43,8 +45,8 @@ function Navbar() {
 
         {/* === MIDDLE: Nav links (My Portal removed) === */}
         <nav className="navbar-links" aria-label="Primary">
-          <a href="/" className="nav-link nav-link-active">Home</a>
-          <a href="/providers" className="nav-link">Providers</a>
+          <a href="/" className={`nav-link${pathname === '/' ? ' nav-link-active' : ''}`}>Home</a>
+          <a href="/providers" className={`nav-link${pathname === '/providers' ? ' nav-link-active' : ''}`}>Providers</a>
          
         </nav>
 

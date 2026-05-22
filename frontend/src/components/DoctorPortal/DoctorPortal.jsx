@@ -287,17 +287,30 @@ function ProfileTab({ doctor, onSave }) {
     setSaved(false);
   }
 
-  async function handlePhoto(e) {
+  function handlePhoto(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result;
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX = 400;
+      let { width, height } = img;
+      if (width > height) {
+        if (width > MAX) { height = Math.round((height * MAX) / width); width = MAX; }
+      } else {
+        if (height > MAX) { width = Math.round((width * MAX) / height); height = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const base64 = canvas.toDataURL('image/jpeg', 0.8);
       setPhotoPreview(base64);
       setPhotoBase64(base64);
       setSaved(false);
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   }
 
   function validate() {
@@ -336,7 +349,7 @@ function ProfileTab({ doctor, onSave }) {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setSaveError(data.message || 'Failed to save profile. Please try again.');
+        setSaveError(data.message || `Failed to save profile (HTTP ${res.status}). Please try again.`);
         return;
       }
 
