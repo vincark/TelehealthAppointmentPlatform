@@ -12,8 +12,9 @@ import DoctorPortal from './components/DoctorPortal/DoctorPortal';
 import PatientPortal from './components/PatientPortal/PatientPortal';
 import Providers from './components/Providers/Providers';
 import AdminPortal from './components/AdminPortal/AdminPortal';
+import GoogleCallback from './components/GoogleCallback/GoogleCallback';
 
-const FULL_SCREEN_ROUTES = ['/register', '/login', '/doctor-portal', '/patient-portal', '/admin-portal'];
+const FULL_SCREEN_ROUTES = ['/register', '/login', '/doctor-portal', '/patient-portal', '/admin-portal', '/auth/google/callback'];
 
 function HomePage() {
   return (
@@ -42,6 +43,7 @@ function App() {
           <Route path="/patient-portal" element={<PatientPortal />} />
           <Route path="/providers" element={<Providers />} />
           <Route path="/admin-portal" element={<AdminPortal />} />
+          <Route path="/auth/google/callback" element={<GoogleCallback />} />
         </Routes>
       </main>
       {!isFullScreen && <Footer />}
