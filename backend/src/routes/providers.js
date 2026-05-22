@@ -6,19 +6,21 @@ const { verifyToken, verifyRole } = require('../middleware/auth');
 // Get all providers (public — no auth required)
 router.get('/', async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
-              p.specialisation, p.degree, p.spoken_language, p.bio, p.sex, p.profile_picture,
-              COALESCE(AVG(r.rating), 0)::numeric(10,1) AS avg_rating,
-              COUNT(r.rating_id) AS rating_count
-       FROM users u
-       LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
-       LEFT JOIN ratings r ON u.user_id = r.provider_id
-       WHERE u.role_id = 2
-       GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.phone,
-                p.specialisation, p.degree, p.spoken_language, p.bio, p.sex, p.profile_picture`
-    );
+    const result = await pool.query(`
+      SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
+             p.specialisation, p.degree, p.spoken_language, p.bio, p.sex, p.profile_picture,
+             COALESCE(AVG(r.rating), 0)::numeric(10,1) AS avg_rating,
+             COUNT(r.rating_id) AS rating_count
+      FROM users u
+      LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
+      LEFT JOIN ratings r ON u.user_id = r.provider_id
+      WHERE u.role_id = 2 AND u.account_status = 'Active'
+      GROUP BY u.user_id, u.first_name, u.last_name, u.email, u.phone,
+               p.specialisation, p.degree, p.spoken_language, p.bio, p.sex, p.profile_picture
+      ORDER BY u.first_name ASC
+    `);
     res.json({ providers: result.rows });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -26,20 +28,24 @@ router.get('/', async (req, res) => {
 });
 
 // Get a single provider by ID
-router.get('/:id', verifyToken, async (req, res) => {
+router.get('/:provider_id', verifyToken, async (req, res) => {
+  const { provider_id } = req.params;
+
   try {
-    const result = await pool.query(
-      `SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
-              p.specialisation, p.degree, p.spoken_language, p.bio, p.sex, p.profile_picture
-       FROM users u
-       LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
-       WHERE u.user_id = $1 AND u.role_id = 2`,
-      [req.params.id]
-    );
+    const result = await pool.query(`
+      SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
+             p.specialisation, p.degree, p.sex, p.spoken_language,
+             p.bio, p.profile_picture
+      FROM users u
+      LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
+      WHERE u.user_id = $1 AND u.role_id = 2
+    `, [provider_id]);
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Provider not found' });
     }
+
     res.json({ provider: result.rows[0] });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

@@ -131,9 +131,41 @@ const sendStatusUpdateEmail = async (toEmail, patientName, providerName, appoint
   await transporter.sendMail(mailOptions);
 };
 
+// Send welcome email on registration
+const sendWelcomeEmail = async (toEmail, firstName) => {
+  const mailOptions = {
+    from: process.env.EMAIL_FROM,
+    to: toEmail,
+    subject: 'Welcome to Telehealth Platform! 🎉',
+    html: `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <h2 style="color: #2c7a7b;">Welcome to Telehealth Platform, ${firstName}! 👋</h2>
+        <p>Your account has been created successfully!</p>
+        <p>With your new account you can:</p>
+        <ul style="line-height: 2;">
+          <li>Browse and find healthcare providers</li>
+          <li>Book appointments online</li>
+          <li>Receive appointment reminders</li>
+          <li>Track your treatment progress</li>
+        </ul>
+        <div style="background: #f0f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p><strong>Getting started:</strong></p>
+          <p>Log in to your account and browse our available healthcare providers to book your first appointment!</p>
+        </div>
+        <br>
+        <p>Kind regards,</p>
+        <p><strong>Telehealth Platform Team</strong></p>
+      </div>
+    `
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
 module.exports = {
   sendConfirmationEmail,
   sendCancellationEmail,
   sendRescheduledEmail,
-  sendStatusUpdateEmail
+  sendStatusUpdateEmail,
+  sendWelcomeEmail
 };

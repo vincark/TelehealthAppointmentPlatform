@@ -357,6 +357,9 @@ router.put('/consult/:appointment_id', verifyToken, verifyRole([2]), async (req,
   const { notes, prescription } = req.body;
   const provider_id = req.user.user_id;
 
+  if (!notes) {
+    return res.status(400).json({ message: 'Consultation notes are required' });
+  }
   try {
     const appointment = await pool.query(
       `SELECT * FROM appointments WHERE appointment_id = $1`,
@@ -393,10 +396,10 @@ router.put('/consult/:appointment_id', verifyToken, verifyRole([2]), async (req,
   }
 });
 
-// Get consultation notes for a specific appointment (patient must own it)
+// Get consultation notes for a specific appointment
 router.get('/:appointment_id/notes', verifyToken, async (req, res) => {
   const { appointment_id } = req.params;
-  const { user_id, role_id } = req.user;
+  const { user_id } = req.user;
 
   try {
     const result = await pool.query(

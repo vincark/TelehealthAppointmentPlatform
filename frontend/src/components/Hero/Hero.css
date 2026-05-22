@@ -1,0 +1,200 @@
+/* 
+   HERO
+ */
+
+.hero {
+  position: relative;
+  padding-block: var(--space-20) var(--space-16);
+  overflow: hidden;
+
+  /* Soft warm gradient background  */
+  background:
+    radial-gradient(circle at 80% 30%, rgba(253, 230, 211, 0.6), transparent 50%),
+    radial-gradient(circle at 20% 70%, var(--color-primary-soft), transparent 60%),
+    var(--color-bg);
+}
+
+/* Inner container */
+.hero-inner {
+  max-width: var(--container-max);
+  margin: 0 auto;
+  padding: 0 var(--space-6);
+
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-12);
+  align-items: center;
+}
+
+/*  LEFT — text content  */
+.hero-content {
+  max-width: 580px;
+}
+
+/* Top pill */
+.hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  background: var(--color-primary-soft);
+  color: var(--color-primary-dark);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  margin-bottom: var(--space-6);
+}
+
+.hero-pill-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* The giant headline */
+.hero-title {
+  font-size: var(--text-5xl);
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: var(--color-ink);
+  margin-bottom: var(--space-6);
+}
+
+.hero-title-accent {
+  color: var(--color-primary-dark);
+  font-style: italic;
+  font-weight: 400;
+}
+
+/* Lede paragraph */
+.hero-lede {
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  line-height: 1.6;
+  margin-bottom: var(--space-8);
+}
+
+/* BUTTONS  */
+.hero-actions {
+  display: flex;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-10);
+}
+
+/* Reusable .btn  */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-6);
+  font-size: var(--text-base);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  transition: all 0.2s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-primary {
+  background: var(--color-primary);
+  color: white;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+}
+
+.btn-secondary {
+  background:var(--color-btn-secondary-bg) ;
+  backdrop-filter: blur(8px);
+  color: var(--color-ink);
+  border: 1.5px solid var(--color-border);
+}
+
+.btn-secondary:hover {
+  background: darknavy;
+  border-color: var(--color-text-muted);
+}
+
+/*  TRUST BADGES  */
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.hero-badge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.hero-badge svg {
+  color: var(--color-primary);
+}
+
+/*  RIGHT — visual placeholder */
+/* RIGHT — hero image  */
+.hero-visual {
+  position: relative;
+  height: 500px;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+
+  /* Subtle shadow for depth */
+  box-shadow: 0 30px 60px -15px rgba(15, 27, 61, 0.2);
+}
+
+.hero-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;          /* fill the box, crop edges nicely */
+  object-position: center;    /* center the photo inside the box */
+  display: block;
+}
+
+/* RESPONSIVE  */
+@media (max-width: 1024px) {
+  .hero-inner {
+    grid-template-columns: 1fr;
+    gap: var(--space-8);
+  }
+  .hero-visual {
+    height: 320px;
+    order: -1; /* show photo above text on small screens */
+  }
+}
+
+@media (max-width: 600px) {
+  .hero {
+    padding-block: var(--space-12) var(--space-12);
+  }
+  .hero-title {
+    font-size: var(--text-4xl);
+  }
+  .hero-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .btn {
+    justify-content: center;
+  }
+}
