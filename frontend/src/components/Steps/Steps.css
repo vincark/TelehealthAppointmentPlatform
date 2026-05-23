@@ -91,7 +91,7 @@
   color: var(--color-text-muted);
 }
 
-/*Title +description */
+/* Title + description */
 .step-title {
   font-size: var(--text-xl);
   font-weight: 700;

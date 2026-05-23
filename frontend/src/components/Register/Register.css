@@ -534,6 +534,22 @@
   cursor: pointer;
   opacity: 1;
   font-family: var(--font-body);
+  transition: all 0.15s ease;
+}
+
+.register-btn-social:hover {
+  border-color: #4285F4;
+  box-shadow: 0 2px 10px rgba(66, 133, 244, 0.2);
+  transform: translateY(-1px);
+}
+
+.register-btn-social:active {
+  transform: translateY(0);
+}
+
+[data-theme="dark"] .register-btn-social {
+  background: var(--color-bg-alt);
+  color: var(--color-ink);
 }
 
 /* ── OR divider ── */
