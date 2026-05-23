@@ -480,6 +480,7 @@ function AppointmentsTab({ appointments, setAppointments }) {
   });
   const [savingAvail, setSavingAvail] = useState(false);
   const [availSaved, setAvailSaved] = useState(false);
+  const [availError, setAvailError] = useState('');
 
   function updateStatus(id, localStatus, apiStatus) {
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, status: localStatus } : a));
@@ -529,17 +530,40 @@ function AppointmentsTab({ appointments, setAppointments }) {
       }
     }
 
-    // Post each slot — backend skips any that overlap with existing ones
+    if (slots.length === 0) {
+      setSavingAvail(false);
+      setAvailError('No slots were generated — check that your days and times are set correctly.');
+      return;
+    }
+
+    let saved = 0;
+    let overlapped = 0;
+    let authFailed = 0;
     for (const slot of slots) {
-      await fetch('/api/availability/add', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(slot),
-      }).catch(() => {});
+      try {
+        const res = await fetch('/api/availability/add', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(slot),
+        });
+        if (res.ok) saved++;
+        else if (res.status === 400) overlapped++;
+        else authFailed++;
+      } catch {
+        authFailed++;
+      }
     }
 
     setSavingAvail(false);
-    setAvailSaved(true);
+    if (slots.length === 0) {
+      setAvailError('No slots were generated — check your days and times are set correctly.');
+    } else if (authFailed > 0 && saved === 0 && overlapped === 0) {
+      setAvailError('Could not save slots — please log out and log back in, then try again.');
+    } else {
+      // saved > 0 OR overlapped > 0 — slots are in the database
+      setAvailError('');
+      setAvailSaved(true);
+    }
   }
 
   const counts = {
@@ -712,7 +736,9 @@ function AppointmentsTab({ appointments, setAppointments }) {
               </select>
             </div>
           </div>
-          <button type="submit" className="dp-btn-primary dp-save-btn" disabled={savingAvail}>
+          {availError && <p className="dp-error" style={{ marginBottom: '8px' }}>{availError}</p>}
+          <button type="submit" className="dp-btn-primary dp-save-btn" disabled={savingAvail}
+            onClick={() => { setAvailSaved(false); setAvailError(''); }}>
             {savingAvail ? <span className="dp-spinner" aria-hidden="true" /> : <IconSave />}
             {savingAvail ? 'Generating slots…' : availSaved ? 'Slots saved!' : 'Save Availability'}
           </button>

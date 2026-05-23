@@ -1154,6 +1154,184 @@
   color: var(--color-primary-dark);
 }
 
+/* ── Timetable ── */
+.pp-timetable-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pp-date-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+}
+
+.pp-date-nav-label {
+  font-weight: 700;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+}
+
+.pp-date-nav-btn {
+  background: none;
+  border: 1.5px solid var(--color-border);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  font-size: 20px;
+  line-height: 1;
+  color: var(--color-primary);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.pp-date-nav-btn:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+.pp-date-nav-btn:disabled {
+  color: var(--color-border);
+  cursor: default;
+}
+
+.pp-slot-total {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin: 0;
+}
+
+.pp-slot-legend-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pp-slot-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: var(--text-sm);
+  color: var(--color-text);
+}
+.pp-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.pp-legend-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.pp-legend-business .pp-legend-dot { background: #dbeafe; border: 1.5px solid #93c5fd; }
+.pp-legend-after    .pp-legend-dot { background: #1e3a5f; }
+
+.pp-bulk-bill {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #16a34a;
+  background: #dcfce7;
+  border: 1.5px solid #86efac;
+  border-radius: 20px;
+  padding: 4px 12px;
+  white-space: nowrap;
+  align-self: flex-start;
+}
+
+.pp-timetable-section {
+  background: var(--color-bg);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.pp-timetable-section-hdr {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  font-size: var(--text-base);
+  color: var(--color-ink);
+}
+.pp-timetable-icon { font-size: 18px; }
+
+.pp-timetable-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pp-time-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+.pp-slot-time-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.pp-slot-rate {
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.pp-time-slot--business {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+}
+.pp-time-slot--business:hover {
+  background: #bfdbfe;
+  border-color: #3b82f6;
+}
+
+.pp-time-slot--after {
+  background: #1e3a5f;
+  border-color: #1e3a5f;
+  color: #ffffff;
+}
+.pp-time-slot--after:hover {
+  background: #1e40af;
+  border-color: #1e40af;
+}
+
+[data-theme="dark"] .pp-time-slot--business {
+  background: #1e3a5f;
+  border-color: #3b82f6;
+  color: #bfdbfe;
+}
+[data-theme="dark"] .pp-time-slot--after {
+  background: #0f172a;
+  border-color: #334155;
+  color: #94a3b8;
+}
+
+.pp-confirm-fee--business { color: #1e40af; font-weight: 700; }
+.pp-confirm-fee--after    { color: #1e3a5f; font-weight: 700; }
+.pp-confirm-bulk { font-weight: 500; color: #16a34a; font-size: var(--text-sm); }
+
 /* Confirm section */
 .pp-confirm-section {
   display: flex;

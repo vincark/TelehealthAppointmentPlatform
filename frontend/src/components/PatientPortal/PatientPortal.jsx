@@ -258,6 +258,8 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState('');
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [slotFetchError, setSlotFetchError] = useState('');
   const token = localStorage.getItem('token');
   const autoSelectedRef = useRef(false);
 
@@ -280,9 +282,9 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
     setSelectedSlot(null);
     setLoading(true);
     fetch(`/api/availability/provider/${match.user_id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.slots) setSlots(data.slots); })
-      .catch(() => {})
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(data => { setSlots(data?.slots ?? []); setSelectedDate(null); setSlotFetchError(''); })
+      .catch(err => { setSlotFetchError(`Could not load slots (${err}). Is the server running?`); })
       .finally(() => { setLoading(false); setStep('slots'); });
   }, [providers]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -292,9 +294,9 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
     setSelectedSlot(null);
     setLoading(true);
     fetch(`/api/availability/provider/${provider.user_id}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.slots) setSlots(data.slots); })
-      .catch(() => {})
+      .then(r => r.ok ? r.json() : Promise.reject(`HTTP ${r.status}`))
+      .then(data => { setSlots(data?.slots ?? []); setSelectedDate(null); setSlotFetchError(''); })
+      .catch(err => { setSlotFetchError(`Could not load slots (${err}). Is the server running?`); })
       .finally(() => { setLoading(false); setStep('slots'); });
   }
 
@@ -304,6 +306,7 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
     setBooking(true);
     setError('');
     try {
+      const { rate } = getSlotRate(selectedSlot);
       const res = await fetch('/api/appointments/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -312,6 +315,7 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
           availability_id: selectedSlot.availability_id,
           reason,
           notes: '',
+          fee: rate,
         }),
       });
       const data = await res.json();
@@ -341,6 +345,30 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
       setBooking(false);
     }
   }
+
+  // ── Timetable helpers ──
+  function slotLocalDate(slot) {
+    const d = new Date(slot.slot_start);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+  function formatDateHeader(dateStr) {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+  }
+  function getSlotRate(slot) {
+    const d = new Date(slot.slot_start);
+    const day = d.getDay(); // 0=Sun, 6=Sat
+    const h = d.getHours();
+    if (day === 0 || day === 6) return { rate: 90, type: 'after' };
+    if (h >= 8 && h < 18) return { rate: 75, type: 'business' };
+    return { rate: 90, type: 'after' };
+  }
+  const availableDates = [...new Set(slots.map(slotLocalDate))].sort();
+  const currentDate   = selectedDate || availableDates[0] || null;
+  const dateIdx       = currentDate ? availableDates.indexOf(currentDate) : 0;
+  const slotsOnDate   = currentDate ? slots.filter(s => slotLocalDate(s) === currentDate) : [];
+  const morningSlots  = slotsOnDate.filter(s => new Date(s.slot_start).getHours() < 8);
+  const daytimeSlots  = slotsOnDate.filter(s => { const h = new Date(s.slot_start).getHours(); return h >= 8 && h < 18; });
+  const eveningSlots  = slotsOnDate.filter(s => new Date(s.slot_start).getHours() >= 18);
 
   const modalTitle = step === 'providers'
     ? 'Choose a Provider'
@@ -387,27 +415,118 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
         )}
 
         {!loading && step === 'slots' && (
-          <div>
+          <div className="pp-timetable-wrap">
             <button className="pp-modal-back" onClick={() => { setStep('providers'); setSelectedProvider(null); }}>
               ← Back to providers
             </button>
-            {slots.length === 0 ? (
-              <p className="pp-empty-state">No available slots for this provider right now</p>
+
+            {slotFetchError ? (
+              <p className="pp-error-banner">{slotFetchError}</p>
+            ) : slots.length === 0 ? (
+              <p className="pp-empty-state">No available slots for this provider right now. Ask them to set their availability in their portal.</p>
             ) : (
-              <div className="pp-slots-grid">
-                {slots.map(s => (
+              <>
+                <p className="pp-slot-total">{slots.length} slot{slots.length !== 1 ? 's' : ''} available across {availableDates.length} day{availableDates.length !== 1 ? 's' : ''}</p>
+                {/* Date navigator */}
+                <div className="pp-date-nav">
                   <button
-                    key={s.availability_id}
-                    className="pp-slot-btn"
-                    onClick={() => { setSelectedSlot(s); setStep('confirm'); }}
-                  >
-                    <span className="pp-slot-date">{formatDate(s.slot_start)}</span>
-                    <span className="pp-slot-time">
-                      {formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}
+                    className="pp-date-nav-btn"
+                    onClick={() => setSelectedDate(availableDates[dateIdx - 1])}
+                    disabled={dateIdx === 0}
+                  >&#8249;</button>
+                  <span className="pp-date-nav-label">
+                    {currentDate ? formatDateHeader(currentDate) : ''}
+                  </span>
+                  <button
+                    className="pp-date-nav-btn"
+                    onClick={() => setSelectedDate(availableDates[dateIdx + 1])}
+                    disabled={dateIdx === availableDates.length - 1}
+                  >&#8250;</button>
+                </div>
+
+                {/* Legend + bulk bill */}
+                <div className="pp-slot-legend-wrap">
+                  <div className="pp-slot-legend">
+                    <span className="pp-legend-item pp-legend-business">
+                      <span className="pp-legend-dot" /> Business Hours (Mon–Fri 8am–6pm) $75
                     </span>
-                  </button>
-                ))}
-              </div>
+                    <span className="pp-legend-item pp-legend-after">
+                      <span className="pp-legend-dot" /> After Hours &amp; Weekends $90
+                    </span>
+                  </div>
+                  <span className="pp-bulk-bill">✔ Bulk Bill Accepted</span>
+                </div>
+
+                {/* Morning */}
+                {morningSlots.length > 0 && (
+                  <div className="pp-timetable-section">
+                    <div className="pp-timetable-section-hdr">
+                      <span className="pp-timetable-icon">🌅</span> Morning
+                    </div>
+                    <div className="pp-timetable-grid">
+                      {morningSlots.map(s => {
+                        const { rate, type } = getSlotRate(s);
+                        return (
+                          <button key={s.availability_id}
+                            className={`pp-time-slot pp-time-slot--${type}`}
+                            onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
+                            <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
+                            <span className="pp-slot-rate">${rate}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Daytime */}
+                {daytimeSlots.length > 0 && (
+                  <div className="pp-timetable-section">
+                    <div className="pp-timetable-section-hdr">
+                      <span className="pp-timetable-icon">☀️</span> Daytime
+                    </div>
+                    <div className="pp-timetable-grid">
+                      {daytimeSlots.map(s => {
+                        const { rate, type } = getSlotRate(s);
+                        return (
+                          <button key={s.availability_id}
+                            className={`pp-time-slot pp-time-slot--${type}`}
+                            onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
+                            <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
+                            <span className="pp-slot-rate">${rate}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Evening */}
+                {eveningSlots.length > 0 && (
+                  <div className="pp-timetable-section">
+                    <div className="pp-timetable-section-hdr">
+                      <span className="pp-timetable-icon">🌙</span> Evening
+                    </div>
+                    <div className="pp-timetable-grid">
+                      {eveningSlots.map(s => {
+                        const { rate, type } = getSlotRate(s);
+                        return (
+                          <button key={s.availability_id}
+                            className={`pp-time-slot pp-time-slot--${type}`}
+                            onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
+                            <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
+                            <span className="pp-slot-rate">${rate}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {slotsOnDate.length === 0 && (
+                  <p className="pp-empty-state">No slots available on this day</p>
+                )}
+              </>
             )}
           </div>
         )}
@@ -432,6 +551,17 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
                   {formatDate(selectedSlot?.slot_start)} · {formatTime12(new Date(selectedSlot?.slot_start).toTimeString().slice(0, 5))}
                 </span>
               </div>
+              {selectedSlot && (() => {
+                const { rate, type } = getSlotRate(selectedSlot);
+                return (
+                  <div className="pp-confirm-row">
+                    <span className="pp-confirm-label">Consultation Fee</span>
+                    <span className={`pp-confirm-value pp-confirm-fee pp-confirm-fee--${type}`}>
+                      ${rate} <span className="pp-confirm-bulk">· Bulk Bill Accepted</span>
+                    </span>
+                  </div>
+                );
+              })()}
             </div>
             <div className="pp-field">
               <label htmlFor="pp-reason">Reason for visit <span aria-hidden="true">*</span></label>
@@ -656,6 +786,7 @@ function AppointmentsTab({ appointments, setAppointments, onBook }) {
                   <th>Doctor</th>
                   <th>Date &amp; Time</th>
                   <th>Reason</th>
+                  <th>Fee</th>
                   <th>Status</th>
                   <th>Action</th>
                 </tr>
@@ -666,6 +797,7 @@ function AppointmentsTab({ appointments, setAppointments, onBook }) {
                     <td>{a.doctor}</td>
                     <td>{formatDate(a.date)} · {formatTime12(a.time)}</td>
                     <td>{a.reason || '—'}</td>
+                    <td>{a.fee ? `$${a.fee}` : '—'}</td>
                     <td><span className={`pp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
                     <td className="pp-table-actions">
                       {a.status === 'confirmed' && (
@@ -702,6 +834,7 @@ function AppointmentsTab({ appointments, setAppointments, onBook }) {
                   <th>Doctor</th>
                   <th>Date &amp; Time</th>
                   <th>Reason</th>
+                  <th>Fee</th>
                   <th>Status</th>
                 </tr>
               </thead>
@@ -711,6 +844,7 @@ function AppointmentsTab({ appointments, setAppointments, onBook }) {
                     <td>{a.doctor}</td>
                     <td>{formatDate(a.date)} · {formatTime12(a.time)}</td>
                     <td>{a.reason || '—'}</td>
+                    <td>{a.fee ? `$${a.fee}` : '—'}</td>
                     <td><span className={`pp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
                   </tr>
                 ))}
@@ -1106,6 +1240,7 @@ function PatientPortal() {
           notes:        a.notes ?? '',
           prescription: a.prescription ?? '',
           status:       a.status.toLowerCase(),
+          fee:          a.fee ?? null,
         })));
       })
       .catch(() => {});
