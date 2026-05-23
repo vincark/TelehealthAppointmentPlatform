@@ -1,4 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 import './PatientPortal.css';
 
 function formatRelativeTime(dateStr) {
@@ -247,9 +251,94 @@ function Sidebar({ activeTab, onTabChange, patient }) {
   );
 }
 
+// ── Payment Step ──
+function PaymentStep({ appointmentId, consultationFee, clientSecret, token, onSuccess, onBack }) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [paying, setPaying] = useState(false);
+  const [error, setError] = useState('');
+
+  async function handlePay() {
+    if (!stripe || !elements) return;
+    setPaying(true);
+    setError('');
+
+    try {
+      // Send card details to Stripe
+      const result = await stripe.confirmCardPayment(
+        clientSecret,
+        { payment_method: { card: elements.getElement(CardElement) } }
+      );
+
+      if (result.error) {
+        setError(result.error.message);
+        return;
+      }
+
+      // Tell your backend the payment worked
+      const res = await fetch('/api/payments/confirm-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          appointment_id: appointmentId,
+          payment_intent_id: result.paymentIntent.id,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) { setError(data.message || 'Payment confirmation failed.'); return; }
+
+      onSuccess();
+
+    } catch {
+      setError('Something went wrong. Please try again.');
+    } finally {
+      setPaying(false);
+    }
+  }
+
+  return (
+    <div className="pp-confirm-section">
+      <button className="pp-modal-back" onClick={onBack}>← Back</button>
+
+      <div className="pp-confirm-summary">
+        <div className="pp-confirm-row">
+          <span className="pp-confirm-label">Amount due</span>
+          <span className="pp-confirm-value" style={{ fontWeight: 700, color: '#16a34a' }}>
+            ${(consultationFee / 100).toFixed(2)} AUD
+          </span>
+        </div>
+      </div>
+
+      <div className="pp-field" style={{ marginTop: '1rem' }}>
+        <label>Card details</label>
+        <div className="pp-card-input">
+          <CardElement options={{
+            hidePostalCode: true,
+            style: { base: { fontSize: '16px', fontFamily: 'inherit' } }
+          }} />
+        </div>
+        <p className="pp-card-hint">
+          🔒 Test mode — use card number <strong>4242 4242 4242 4242</strong>, any future expiry, any CVC
+        </p>
+      </div>
+
+      {error && <p className="pp-error-banner">{error}</p>}
+
+      <button className="pp-btn-primary pp-confirm-btn" onClick={handlePay} disabled={paying || !stripe}>
+        {paying ? <span className="pp-spinner" aria-hidden="true" /> : null}
+        {paying ? 'Processing payment…' : `Pay $${(consultationFee / 100).toFixed(2)} AUD`}
+      </button>
+    </div>
+  );
+}
+
 // ── Booking Modal ──
 function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
   const [step, setStep] = useState('providers');
+  const [appointmentId, setAppointmentId] = useState(null);
+  const [consultationFee, setConsultationFee] = useState(null);
+  const [clientSecret, setClientSecret] = useState('');
   const [providers, setProviders] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [slots, setSlots] = useState([]);
@@ -306,7 +395,7 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
     setBooking(true);
     setError('');
     try {
-      const { rate } = getSlotRate(selectedSlot);
+      // Step 1 — Book the appointment
       const res = await fetch('/api/appointments/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -315,14 +404,12 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
           availability_id: selectedSlot.availability_id,
           reason,
           notes: '',
-          fee: rate,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         const msg = data.message || 'Booking failed. Please try again.';
         setError(msg);
-        // Slot was grabbed by someone else — go back and show fresh availability
         if (res.status === 400 && data.message?.toLowerCase().includes('already booked')) {
           setSelectedSlot(null);
           setStep('slots');
@@ -337,8 +424,23 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
         }
         return;
       }
-      onBooked();
-      onClose();
+
+      // Step 2 — Create a payment intent and move to payment step
+      const apptId = data.appointment.appointment_id;
+      setAppointmentId(apptId);
+
+      const payRes = await fetch('/api/payments/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ appointment_id: apptId }),
+      });
+      const payData = await payRes.json();
+      if (!payRes.ok) { setError(payData.message || 'Payment setup failed.'); return; }
+
+      setClientSecret(payData.clientSecret);
+      setConsultationFee(payData.amount);
+      setStep('payment');
+
     } catch {
       setError('Could not connect. Please try again.');
     } finally {
@@ -579,6 +681,18 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
               {booking ? 'Booking…' : 'Confirm Booking'}
             </button>
           </div>
+        )}
+        {step === 'payment' && clientSecret && (
+          <Elements stripe={stripePromise} options={{ clientSecret }}>
+            <PaymentStep
+              clientSecret={clientSecret}
+              appointmentId={appointmentId}
+              consultationFee={consultationFee}
+              token={token}
+              onSuccess={() => { onBooked(); onClose(); }}
+              onBack={() => setStep('confirm')}
+            />
+          </Elements>
         )}
       </div>
     </div>
