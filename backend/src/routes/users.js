@@ -31,19 +31,22 @@ router.get('/me', verifyToken, async (req, res) => {
 // Update own profile
 router.put('/me', verifyToken, async (req, res) => {
   const { user_id } = req.user;
-  const { phone, address, emergency_contact, health_fund } = req.body;
+  const { first_name, last_name, phone, address, emergency_contact, health_fund, date_of_birth } = req.body;
 
   try {
     const updated = await pool.query(
       `UPDATE users 
-       SET phone = COALESCE($1, phone),
-           address = COALESCE($2, address),
-           emergency_contact = COALESCE($3, emergency_contact),
-           health_fund = COALESCE($4, health_fund)
-       WHERE user_id = $5
-       RETURNING user_id, first_name, last_name, email, 
-                 phone, address, emergency_contact, health_fund`,
-      [phone, address, emergency_contact, health_fund, user_id]
+      SET first_name = COALESCE($1, first_name),
+          last_name = COALESCE($2, last_name),
+          phone = COALESCE($3, phone),
+          address = COALESCE($4, address),
+          emergency_contact = COALESCE($5, emergency_contact),
+          health_fund = COALESCE($6, health_fund),
+          date_of_birth = COALESCE($7, date_of_birth)
+      WHERE user_id = $8
+      RETURNING user_id, first_name, last_name, email, 
+                phone, address, emergency_contact, health_fund, date_of_birth`,
+      [first_name, last_name, phone, address, emergency_contact, health_fund, date_of_birth, user_id]
     );
 
     res.json({
