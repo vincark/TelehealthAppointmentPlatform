@@ -247,6 +247,7 @@ function ProfileTab({ doctor, onSave }) {
   const [photoBase64, setPhotoBase64] = useState(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
   const [errors, setErrors] = useState({});
   const fileRef = useRef(null);
 
@@ -286,17 +287,30 @@ function ProfileTab({ doctor, onSave }) {
     setSaved(false);
   }
 
-  async function handlePhoto(e) {
+  function handlePhoto(e) {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result;
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl);
+      const MAX = 400;
+      let { width, height } = img;
+      if (width > height) {
+        if (width > MAX) { height = Math.round((height * MAX) / width); width = MAX; }
+      } else {
+        if (height > MAX) { width = Math.round((width * MAX) / height); height = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+      const base64 = canvas.toDataURL('image/jpeg', 0.8);
       setPhotoPreview(base64);
       setPhotoBase64(base64);
       setSaved(false);
     };
-    reader.readAsDataURL(file);
+    img.src = objectUrl;
   }
 
   function validate() {
@@ -311,33 +325,38 @@ function ProfileTab({ doctor, onSave }) {
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
     setSaving(true);
+    setSaveError('');
     try {
       const token = localStorage.getItem('token');
 
-      // Update phone in the users table
       await fetch('/api/users/me', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ phone: form.phone }),
       });
 
-      // Upsert specialty, sex, languages, bio, photo into provider_profiles table
-      await fetch('/api/providers/profile', {
+      const res = await fetch('/api/providers/profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           specialisation: form.specialty,
           sex: form.sex,
-          spoken_language: form.languages,
+          spoken_language: form.languages.join(', '),
           bio: form.overview,
           ...(photoBase64 ? { profile_picture: photoBase64 } : {}),
         }),
       });
 
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setSaveError(data.message || `Failed to save profile (HTTP ${res.status}). Please try again.`);
+        return;
+      }
+
       setSaved(true);
       onSave?.({ ...doctor, ...form });
     } catch {
-      // network error — user can retry
+      setSaveError('Network error. Please check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -398,10 +417,9 @@ function ProfileTab({ doctor, onSave }) {
             <label htmlFor="dp-sex">Sex</label>
             <select id="dp-sex" name="sex" value={form.sex} onChange={handleChange}>
               <option value="">Select</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="intersex">Intersex</option>
-              <option value="prefer-not">Prefer not to say</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
             </select>
           </div>
           <div className="dp-field dp-field--full">
@@ -442,6 +460,7 @@ function ProfileTab({ doctor, onSave }) {
         </div>
       </div>
 
+      {saveError && <p className="dp-error" style={{ textAlign: 'center', marginBottom: '8px' }}>{saveError}</p>}
       <button type="submit" className="dp-btn-primary dp-save-btn" disabled={saving}>
         {saving ? <span className="dp-spinner" aria-hidden="true" /> : <IconSave />}
         {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Profile'}

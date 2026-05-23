@@ -883,8 +883,92 @@ function HealthProfileTab({ patient, onSave }) {
   );
 }
 
+// ── Rating Modal ──
+function RatingModal({ appointment, onClose }) {
+  const [hovered, setHovered] = useState(0);
+  const [selected, setSelected] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
+  const token = localStorage.getItem('token');
+
+  async function submit() {
+    if (!selected) return;
+    setSubmitting(true);
+    try {
+      await fetch('/api/ratings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          provider_id: appointment.providerId,
+          appointment_id: appointment.id,
+          rating: selected,
+        }),
+      });
+      setDone(true);
+      setTimeout(onClose, 1500);
+    } catch {
+      // silent
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="pp-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="pp-modal pp-rating-modal" role="dialog" aria-modal="true">
+        <div className="pp-modal-header">
+          <h2 className="pp-modal-title">Rate Your Doctor</h2>
+          <button className="pp-modal-close" onClick={onClose} aria-label="Close"><IconClose /></button>
+        </div>
+        {done ? (
+          <div className="pp-rating-done">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#10b981" strokeWidth="2">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <p>Thank you for your feedback!</p>
+          </div>
+        ) : (
+          <>
+            <p className="pp-rating-sub">How was your experience with {appointment.doctor}?</p>
+            <div className="pp-rating-stars">
+              {[1, 2, 3, 4, 5].map(s => (
+                <button
+                  key={s}
+                  className="pp-star-btn"
+                  onMouseEnter={() => setHovered(s)}
+                  onMouseLeave={() => setHovered(0)}
+                  onClick={() => setSelected(s)}
+                  aria-label={`${s} star${s !== 1 ? 's' : ''}`}
+                >
+                  <svg viewBox="0 0 24 24" width="36" height="36"
+                    fill={s <= (hovered || selected) ? '#f59e0b' : '#d1d5db'}>
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                  </svg>
+                </button>
+              ))}
+            </div>
+            {selected > 0 && (
+              <p className="pp-rating-label">
+                {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][selected]}
+              </p>
+            )}
+            <div className="pp-modal-actions">
+              <button className="pp-btn-outline" onClick={onClose} disabled={submitting}>Cancel</button>
+              <button className="pp-btn-primary" onClick={submit} disabled={!selected || submitting}>
+                {submitting ? 'Submitting…' : 'Submit Rating'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Medical History tab ──
 function MedicalHistoryTab({ appointments }) {
+  const [ratingAppt, setRatingAppt] = useState(null);
   const records = appointments.filter(a => a.status === 'completed');
 
   if (records.length === 0) {
@@ -936,9 +1020,17 @@ function MedicalHistoryTab({ appointments }) {
             {!a.notes && !a.prescription && (
               <p className="pp-history-pending">Notes not yet added by provider.</p>
             )}
+            <div className="pp-history-card-footer">
+              <button className="pp-btn-rate" onClick={() => setRatingAppt(a)}>
+                ★ Rate Doctor
+              </button>
+            </div>
           </div>
         ))}
       </div>
+      {ratingAppt && (
+        <RatingModal appointment={ratingAppt} onClose={() => setRatingAppt(null)} />
+      )}
     </div>
   );
 }
@@ -1006,6 +1098,7 @@ function PatientPortal() {
         if (!data?.appointments) return;
         setAppointments(data.appointments.map(a => ({
           id:           a.appointment_id,
+          providerId:   a.provider_id,
           doctor:       `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
           date:         a.appointment_datetime.split('T')[0],
           time:         a.appointment_datetime.split('T')[1]?.slice(0, 5) ?? '',

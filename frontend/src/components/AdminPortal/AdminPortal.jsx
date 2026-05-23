@@ -233,9 +233,7 @@ function OverviewTab({ dashData, loading }) {
 // ── Add Provider Modal ────────────────────────────────────────────────────────
 function AddProviderModal({ onClose, onCreated }) {
   const [form, setForm] = useState({
-    first_name: '', last_name: '', email: '', phone: '',
-    temp_password: '', specialisation: '', degree: '',
-    sex: '', spoken_language: '', bio: '',
+    first_name: '', last_name: '', email: '', temp_password: '',
   });
   const [errors, setErrors] = useState({});
   const [saving, setSaving] = useState(false);
@@ -327,44 +325,6 @@ function AddProviderModal({ onClose, onCreated }) {
               </button>
             </div>
             {errors.temp_password && <span className="ad-field-error">{errors.temp_password}</span>}
-          </div>
-
-          <p className="ad-modal-section-label" style={{ marginTop: '1.25rem' }}>Professional details <span className="ad-optional">(optional)</span></p>
-          <div className="ad-modal-row">
-            <div className="ad-modal-field">
-              <label>Specialisation</label>
-              <input name="specialisation" value={form.specialisation} onChange={handleChange} placeholder="e.g. Cardiology" />
-            </div>
-            <div className="ad-modal-field">
-              <label>Degree</label>
-              <input name="degree" value={form.degree} onChange={handleChange} placeholder="e.g. MBBS, MD" />
-            </div>
-          </div>
-
-          <div className="ad-modal-row">
-            <div className="ad-modal-field">
-              <label>Phone</label>
-              <input name="phone" value={form.phone} onChange={handleChange} placeholder="+61 4XX XXX XXX" />
-            </div>
-            <div className="ad-modal-field">
-              <label>Sex</label>
-              <select name="sex" value={form.sex} onChange={handleChange}>
-                <option value="">Select</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="ad-modal-field">
-            <label>Spoken Languages</label>
-            <input name="spoken_language" value={form.spoken_language} onChange={handleChange} placeholder="e.g. English, Mandarin" />
-          </div>
-
-          <div className="ad-modal-field">
-            <label>Bio</label>
-            <textarea name="bio" value={form.bio} onChange={handleChange} rows={3} placeholder="Short bio displayed on their profile…" />
           </div>
 
           {apiError && <p className="ad-error-banner">{apiError}</p>}

@@ -1363,3 +1363,78 @@
 }
 .pp-history-pending { font-size: 0.85rem; color: var(--color-ink-light); font-style: italic; }
 .pp-pill--completed { background: #d1fae5; color: #065f46; }
+
+/* ── Rating ── */
+.pp-history-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--color-border);
+  margin-top: 0.25rem;
+}
+
+.pp-btn-rate {
+  background: transparent;
+  border: 1.5px solid #f59e0b;
+  color: #b45309;
+  border-radius: 999px;
+  padding: 6px 16px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.15s, color 0.15s;
+}
+
+.pp-btn-rate:hover {
+  background: #fef3c7;
+}
+
+.pp-rating-modal {
+  max-width: 420px;
+  text-align: center;
+}
+
+.pp-rating-sub {
+  font-size: 0.92rem;
+  color: var(--color-text-muted);
+  margin: 0 0 1.25rem;
+}
+
+.pp-rating-stars {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 0.75rem;
+}
+
+.pp-star-btn {
+  background: none;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.pp-star-btn:hover {
+  transform: scale(1.15);
+}
+
+.pp-rating-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #b45309;
+  margin: 0 0 1.25rem;
+  min-height: 1.4em;
+}
+
+.pp-rating-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0;
+  color: #065f46;
+  font-weight: 600;
+  font-size: 1rem;
+}
