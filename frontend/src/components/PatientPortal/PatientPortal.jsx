@@ -763,6 +763,35 @@ function HealthProfileTab({ patient, onSave }) {
 
   async function handleSave(e) {
     e.preventDefault();
+    // Validate inputs
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      setError('First name and last name are required!');
+      return;
+    }
+
+    if (form.phone && !/^\d{10}$/.test(form.phone.replace(/\s/g, ''))) {
+      setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    if (form.dob) {
+      const dob = new Date(form.dob);
+      const today = new Date();
+      if (dob >= today) {
+        setError('Date of birth must be in the past');
+        return;
+      }
+    }
+
+    if (!form.address.trim()) {
+      setError('Address is required');
+      return;
+    }
+
+    if (!form.emergencyContact.trim()) {
+      setError('Emergency contact is required');
+      return;
+    }
     setSaving(true);
     setError('');
     try {
@@ -784,6 +813,11 @@ function HealthProfileTab({ patient, onSave }) {
       if (!res.ok) { setError(data.message || 'Failed to save. Please try again.'); return; }
       setSaved(true);
       onSave?.({ ...patient, ...form });
+      setTimeout(() => {
+        onSave?.({ ...patient, ...form });
+        window.history.replaceState({}, '', '/patient-portal');
+        window.dispatchEvent(new Event('navigateToOverview'));
+      }, 1500);
     } catch {
       setError('Could not connect. Please try again.');
     } finally {
@@ -934,6 +968,11 @@ function PatientPortal() {
     const params = new URLSearchParams(window.location.search);
     const bookId = params.get('book');
     const openBooking = params.get('openBooking');
+    const tab = params.get('tab');
+    if (tab) {
+      setActiveTab(tab);
+      window.history.replaceState({}, '', '/patient-portal');
+    }
     if (bookId) {
       setBookProviderId(bookId);
       setShowBooking(true);
@@ -990,6 +1029,10 @@ function PatientPortal() {
         })));
       })
       .catch(() => {});
+
+    // Navigate to overview after profile save
+    window.addEventListener('navigateToOverview', () => setActiveTab('overview'));
+    return () => window.removeEventListener('navigateToOverview', () => setActiveTab('overview'));
   }, []);
 
   function markAllRead() {
