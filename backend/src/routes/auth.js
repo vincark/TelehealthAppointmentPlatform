@@ -3,6 +3,7 @@ const router = express.Router();
 const bcrypt = require('bcrypt');
 const pool = require('../config/db');
 const jwt = require('jsonwebtoken');
+const { sendWelcomeEmail } = require('../utils/email');
 
 // Register a new patient
 router.post('/register', async (req, res) => {
@@ -19,7 +20,7 @@ router.post('/register', async (req, res) => {
   } = req.body;
 
   // Validate inputs
-  if (!first_name || !last_name || !email || !password) {
+  if (!email || !password) {
     return res.status(400).json({ message: 'Please fill in all required fields' });
   }
 
@@ -54,10 +55,18 @@ router.post('/register', async (req, res) => {
     const newUser = await pool.query(
       `INSERT INTO users 
         (first_name, last_name, email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund, role_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1)
-       RETURNING user_id, first_name, last_name, email, role_id`,
-      [first_name, last_name, email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund]
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1)
+      RETURNING user_id, first_name, last_name, email, role_id`,
+      [first_name || '', last_name || '', email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund]
     );
+
+    // Send welcome email
+    try {
+      await sendWelcomeEmail(email, first_name);
+      console.log('Welcome email sent to:', email);
+    } catch (emailError) {
+      console.error('Welcome email failed:', emailError);
+    }
 
     res.status(201).json({
       message: 'Registration successful!',

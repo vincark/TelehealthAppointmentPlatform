@@ -3,17 +3,21 @@ const router = express.Router();
 const pool = require('../config/db');
 const { verifyToken, verifyRole } = require('../middleware/auth');
 
-// Get all providers (any authenticated user)
+// Get all providers
 router.get('/', verifyToken, async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
-              p.specialisation, p.degree, p.spoken_language, p.bio, p.sex
-       FROM users u
-       LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
-       WHERE u.role_id = 2`
-    );
+    const result = await pool.query(`
+      SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
+             p.specialisation, p.degree, p.sex, p.spoken_language, 
+             p.bio, p.profile_picture
+      FROM users u
+      LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
+      WHERE u.role_id = 2 AND u.account_status = 'Active'
+      ORDER BY u.first_name ASC
+    `);
+
     res.json({ providers: result.rows });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -21,20 +25,25 @@ router.get('/', verifyToken, async (req, res) => {
 });
 
 // Get a single provider by ID
-router.get('/:id', verifyToken, async (req, res) => {
+router.get('/:provider_id', verifyToken, async (req, res) => {
+  const { provider_id } = req.params;
+
   try {
-    const result = await pool.query(
-      `SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
-              p.specialisation, p.degree, p.spoken_language, p.bio, p.sex
-       FROM users u
-       LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
-       WHERE u.user_id = $1 AND u.role_id = 2`,
-      [req.params.id]
-    );
+    const result = await pool.query(`
+      SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
+             p.specialisation, p.degree, p.sex, p.spoken_language,
+             p.bio, p.profile_picture
+      FROM users u
+      LEFT JOIN provider_profiles p ON u.user_id = p.provider_id
+      WHERE u.user_id = $1 AND u.role_id = 2
+    `, [provider_id]);
+
     if (result.rows.length === 0) {
       return res.status(404).json({ message: 'Provider not found' });
     }
+
     res.json({ provider: result.rows[0] });
+
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });

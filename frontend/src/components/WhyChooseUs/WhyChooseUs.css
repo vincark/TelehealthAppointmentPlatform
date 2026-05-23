@@ -1,6 +1,4 @@
-/* ============================================
-   WHY CHOOSE US SECTION
-   ============================================ */
+/*Why choose us */
 
 .why {
   padding-block: var(--space-20);
@@ -17,7 +15,7 @@
   padding: 0 var(--space-6);
 }
 
-/* ===== HEADER ===== */
+/*why header */
 .why-header {
   text-align: center;
   max-width: 620px;
@@ -38,7 +36,7 @@
   line-height: 1.6;
 }
 
-/* ===== GRID ===== */
+/*grid */
 .why-grid {
   list-style: none;
   padding: 0;
@@ -49,7 +47,7 @@
   gap: var(--space-6);
 }
 
-/* ===== CARD ===== */
+/*card */
 .why-card {
   background: var(--color-bg);
   border: 1px solid var(--color-border);
@@ -64,7 +62,7 @@
   transform: translateY(-2px);
 }
 
-/* Icon */
+/*Icon*/
 .why-icon {
   display: flex;
   align-items: center;
@@ -91,7 +89,7 @@
   line-height: 1.6;
 }
 
-/* ===== EMPTY STATE (testimonials placeholder) ===== */
+/*empty (testimonals holder*/
 .why-empty {
   display: flex;
   align-items: center;
@@ -125,7 +123,7 @@
   line-height: 1.5;
 }
 
-/* ===== RESPONSIVE ===== */
+/*Responsive design(laptop,tab,phone)*/
 @media (max-width: 1024px) {
   .why-grid {
     grid-template-columns: repeat(2, 1fr);
