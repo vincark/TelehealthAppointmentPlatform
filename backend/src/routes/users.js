@@ -10,7 +10,8 @@ router.get('/me', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT user_id, first_name, last_name, email, phone, 
-              date_of_birth, address, emergency_contact, 
+              date_of_birth, address, emergency_contact,
+              emergency_contact_name, emergency_contact_phone, emergency_contact_relation,
               health_fund, role_id, account_status, created_at
        FROM users WHERE user_id = $1`,
       [user_id]
@@ -31,7 +32,11 @@ router.get('/me', verifyToken, async (req, res) => {
 // Update own profile
 router.put('/me', verifyToken, async (req, res) => {
   const { user_id } = req.user;
-  const { first_name, last_name, phone, address, emergency_contact, health_fund, date_of_birth } = req.body;
+  const {
+    first_name, last_name, phone, address,
+    emergency_contact, health_fund, date_of_birth,
+    emergency_contact_name, emergency_contact_phone, emergency_contact_relation
+  } = req.body;
 
   try {
     const updated = await pool.query(
@@ -42,11 +47,17 @@ router.put('/me', verifyToken, async (req, res) => {
           address = COALESCE($4, address),
           emergency_contact = COALESCE($5, emergency_contact),
           health_fund = COALESCE($6, health_fund),
-          date_of_birth = COALESCE($7, date_of_birth)
-      WHERE user_id = $8
+          date_of_birth = COALESCE($7, date_of_birth),
+          emergency_contact_name = COALESCE($8, emergency_contact_name),
+          emergency_contact_phone = COALESCE($9, emergency_contact_phone),
+          emergency_contact_relation = COALESCE($10, emergency_contact_relation)
+      WHERE user_id = $11
       RETURNING user_id, first_name, last_name, email, 
-                phone, address, emergency_contact, health_fund, date_of_birth`,
-      [first_name, last_name, phone, address, emergency_contact, health_fund, date_of_birth, user_id]
+                phone, address, emergency_contact, health_fund, date_of_birth,
+                emergency_contact_name, emergency_contact_phone, emergency_contact_relation`,
+      [first_name, last_name, phone, address, emergency_contact,
+       health_fund, date_of_birth, emergency_contact_name,
+       emergency_contact_phone, emergency_contact_relation, user_id]
     );
 
     res.json({

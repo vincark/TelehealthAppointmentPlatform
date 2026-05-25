@@ -1081,6 +1081,9 @@ function HealthProfileTab({ patient, onSave }) {
     dob: '',
     address: '',
     emergencyContact: '',
+    emergencyContactName: '',
+    emergencyContactPhone: '',
+    emergencyContactRelation: '',
     healthFund: '',
   });
   const [saving, setSaving] = useState(false);
@@ -1090,15 +1093,18 @@ function HealthProfileTab({ patient, onSave }) {
   useEffect(() => {
     if (patient?.email) {
       setForm({
-        firstName:       patient.firstName ?? '',
-        lastName:        patient.lastName ?? '',
-        email:           patient.email ?? '',
-        phone:           patient.phone ?? '',
-        dob:             patient.dob ?? '',
-        address:         patient.address ?? '',
-        emergencyContact: patient.emergencyContact ?? '',
-        healthFund:      patient.healthFund ?? '',
-      });
+        firstName:                patient.firstName ?? '',
+        lastName:                 patient.lastName ?? '',
+        email:                    patient.email ?? '',
+        phone:                    patient.phone ?? '',
+        dob:                      patient.dob ?? '',
+        address:                  patient.address ?? '',
+        emergencyContact:         patient.emergencyContact ?? '',
+        emergencyContactName:     patient.emergencyContactName ?? '',
+        emergencyContactPhone:    patient.emergencyContactPhone ?? '',
+        emergencyContactRelation: patient.emergencyContactRelation ?? '',
+        healthFund:               patient.healthFund ?? '',
+});
     }
   }, [patient?.email]);
 
@@ -1119,13 +1125,16 @@ function HealthProfileTab({ patient, onSave }) {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          first_name:        form.firstName,
-          last_name:         form.lastName,
-          date_of_birth:     form.dob || null,
-          phone:             form.phone,
-          address:           form.address,
-          emergency_contact: form.emergencyContact,
-          health_fund:       form.healthFund || null,
+          first_name:                   form.firstName,
+          last_name:                    form.lastName,
+          date_of_birth:                form.dob || null,
+          phone:                        form.phone,
+          address:                      form.address,
+          emergency_contact:            form.emergencyContact,
+          health_fund:                  form.healthFund || null,
+          emergency_contact_name:       form.emergencyContactName || null,
+          emergency_contact_phone:      form.emergencyContactPhone || null,
+          emergency_contact_relation:   form.emergencyContactRelation || null,
         }),
       });
       const data = await res.json();
@@ -1181,8 +1190,27 @@ function HealthProfileTab({ patient, onSave }) {
             <input id="pp-address" name="address" type="text" value={form.address} onChange={handleChange} placeholder="123 Main St, Sydney NSW 2000" />
           </div>
           <div className="pp-field pp-field--full">
-            <label htmlFor="pp-emergency">Emergency Contact</label>
-            <input id="pp-emergency" name="emergencyContact" type="text" value={form.emergencyContact} onChange={handleChange} placeholder="Full name — relationship — phone number" />
+            <label>Emergency Contact</label>
+            <div className="pp-grid-2" style={{ marginTop: '4px' }}>
+              <div className="pp-field">
+                <label htmlFor="pp-ec-name" style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Full Name</label>
+                <input id="pp-ec-name" name="emergencyContactName" type="text"
+                  value={form.emergencyContactName} onChange={handleChange}
+                  placeholder="e.g. Jane Doe" />
+              </div>
+              <div className="pp-field">
+                <label htmlFor="pp-ec-relation" style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Relationship</label>
+                <input id="pp-ec-relation" name="emergencyContactRelation" type="text"
+                  value={form.emergencyContactRelation} onChange={handleChange}
+                  placeholder="e.g. Mother, Spouse" />
+              </div>
+              <div className="pp-field pp-field--full">
+                <label htmlFor="pp-ec-phone" style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Phone Number</label>
+                <input id="pp-ec-phone" name="emergencyContactPhone" type="tel"
+                  value={form.emergencyContactPhone} onChange={handleChange}
+                  placeholder="e.g. 0412 345 678" />
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1402,6 +1430,9 @@ function PatientPortal() {
           dob:             u.date_of_birth ? u.date_of_birth.split('T')[0] : '',
           address:         u.address ?? '',
           emergencyContact: u.emergency_contact ?? '',
+          emergencyContactName:     u.emergency_contact_name ?? '',
+          emergencyContactPhone:    u.emergency_contact_phone ?? '',
+          emergencyContactRelation: u.emergency_contact_relation ?? '',
           healthFund:      u.health_fund ?? '',
         });
       })
