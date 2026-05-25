@@ -315,8 +315,29 @@ function ProfileTab({ doctor, onSave }) {
 
   function validate() {
     const e = {};
-    if (!form.phone.trim()) e.phone = 'Required';
+
+    // Phone — must be 10 digits
+    if (!form.phone.trim()) {
+      e.phone = 'Phone number is required';
+    } else if (!/^\d{10}$/.test(form.phone.replace(/\s/g, ''))) {
+      e.phone = 'Please enter a valid 10-digit phone number';
+    }
+
+    // Specialty
     if (!form.specialty) e.specialty = 'Required';
+
+    // Date of birth — must be in the past
+    if (form.dob) {
+      const dob = new Date(form.dob);
+      const today = new Date();
+      if (dob >= today) e.dob = 'Date of birth must be in the past';
+    }
+
+    // Bio — max 500 characters
+    if (form.overview && form.overview.length > 500) {
+      e.overview = `Bio is too long (${form.overview.length}/500 characters)`;
+    }
+
     return e;
   }
 
@@ -332,7 +353,10 @@ function ProfileTab({ doctor, onSave }) {
       await fetch('/api/users/me', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ phone: form.phone }),
+        body: JSON.stringify({
+          phone:         form.phone,
+          date_of_birth: form.dob || null,
+        }),
       });
 
       const res = await fetch('/api/providers/profile', {
@@ -355,6 +379,9 @@ function ProfileTab({ doctor, onSave }) {
 
       setSaved(true);
       onSave?.({ ...doctor, ...form });
+      setTimeout(() => {
+        window.location.href = 'doctor-portal?tab=dashboard';
+      }, 1500);
     } catch {
       setSaveError('Network error. Please check your connection and try again.');
     } finally {
@@ -400,7 +427,10 @@ function ProfileTab({ doctor, onSave }) {
           </div>
           <div className="dp-field">
             <label htmlFor="dp-dob">Date of Birth</label>
-            <input id="dp-dob" name="dob" type="date" value={form.dob} onChange={handleChange} autoComplete="bday" />
+            <input id="dp-dob" name="dob" type="date" value={form.dob} onChange={handleChange} autoComplete="bday"
+              max={new Date().toISOString().split('T')[0]}
+            />
+            {errors.dob && <span className="dp-error">{errors.dob}</span>}
           </div>
           <div className="dp-field">
             <label htmlFor="dp-email">Email Address</label>
@@ -455,8 +485,13 @@ function ProfileTab({ doctor, onSave }) {
         <div className="dp-field">
           <label htmlFor="dp-overview">Professional Bio</label>
           <textarea id="dp-overview" name="overview" value={form.overview} onChange={handleChange}
+            maxLength={500}
             placeholder="Describe your experience, areas of focus, and approach to patient care…"
             rows={5} className="dp-textarea" />
+          <p style={{ fontSize: '12px', color: form.overview?.length > 450 ? '#ef4444' : '#9ca3af', textAlign: 'right', margin: '4px 0 0' }}>
+            {form.overview?.length ?? 0}/500
+          </p>
+          {errors.overview && <span className="dp-error">{errors.overview}</span>}
         </div>
       </div>
 
@@ -836,6 +871,14 @@ function DoctorPortal() {
     const currentUser = JSON.parse(userStr);
     if (currentUser.role_id !== 2) { window.location.href = '/'; return; }
 
+    // Check for tab redirect from profile save
+    const params = new URLSearchParams(window.location.search);
+    const openTab = params.get('tab');
+    if (openTab) {
+      setActiveTab(openTab);
+      window.history.replaceState({}, '', '/doctor-portal');
+    }
+    
     // Fetch this doctor's profile from the database
     fetch(`/api/providers/${currentUser.user_id}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -847,7 +890,7 @@ function DoctorPortal() {
         setDoctor({
           firstName:  d.first_name ?? '',
           lastName:   d.last_name ?? '',
-          dob:        '',
+          dob:        d.date_of_birth ? d.date_of_birth.split('T')[0] : '',
           email:      d.email ?? '',
           phone:      d.phone ?? '',
           sex:        d.sex ?? '',

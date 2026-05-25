@@ -31,6 +31,7 @@ router.get('/:provider_id', verifyToken, async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT u.user_id, u.first_name, u.last_name, u.email, u.phone,
+             u.date_of_birth,
              p.specialisation, p.degree, p.sex, p.spoken_language,
              p.bio, p.profile_picture
       FROM users u
