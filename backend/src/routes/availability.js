@@ -96,4 +96,67 @@ router.delete('/delete/:availability_id', verifyToken, verifyRole([2]), async (r
   }
 });
 
+// Clear all future unbooked slots for this provider (used when resetting schedule)
+router.delete('/clear-future', verifyToken, verifyRole([2]), async (req, res) => {
+  const provider_id = req.user.user_id;
+
+  try {
+    await pool.query(
+      `DELETE FROM availability 
+       WHERE provider_id = $1 
+       AND is_booked = false 
+       AND slot_start > NOW()`,
+      [provider_id]
+    );
+
+    res.json({ message: 'Future unbooked slots cleared successfully' });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Add multiple availability slots at once (bulk insert)
+router.post('/add-bulk', verifyToken, verifyRole([2]), async (req, res) => {
+  const { slots } = req.body;
+  const provider_id = req.user.user_id;
+
+  if (!slots || slots.length === 0) {
+    return res.status(400).json({ message: 'No slots provided' });
+  }
+
+  try {
+    let saved = 0;
+    let overlapped = 0;
+
+    for (const slot of slots) {
+      const overlapping = await pool.query(
+        `SELECT * FROM availability 
+         WHERE provider_id = $1 
+         AND (slot_start, slot_end) OVERLAPS ($2::timestamp, $3::timestamp)`,
+        [provider_id, slot.slot_start, slot.slot_end]
+      );
+
+      if (overlapping.rows.length > 0) {
+        overlapped++;
+        continue;
+      }
+
+      await pool.query(
+        `INSERT INTO availability (provider_id, slot_start, slot_end)
+         VALUES ($1, $2, $3)`,
+        [provider_id, slot.slot_start, slot.slot_end]
+      );
+      saved++;
+    }
+
+    res.status(201).json({ message: `${saved} slots saved, ${overlapped} overlaps skipped`, saved, overlapped });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

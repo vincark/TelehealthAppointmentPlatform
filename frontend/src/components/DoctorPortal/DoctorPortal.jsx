@@ -472,13 +472,6 @@ function ProfileTab({ doctor, onSave }) {
             <input id="dp-degree" name="degree" type="text" value={form.degree} onChange={handleChange}
               placeholder="e.g. MBBS, MD, FRACGP" />
           </div>
-          <div className="dp-field">
-            <label htmlFor="dp-baseFee">Base Consultation Fee (AUD) <span aria-hidden="true">*</span></label>
-            <input id="dp-baseFee" name="baseFee" type="number" min="0" step="5"
-              value={form.baseFee} onChange={handleChange}
-              placeholder="e.g. 75" />
-            <span className="dp-field-hint">Business hours: this amount · After hours &amp; weekends: +20%</span>
-          </div>
         </div>
       </div>
 
@@ -560,20 +553,20 @@ function AppointmentsTab({ appointments, setAppointments }) {
     setAvailError('');
     const token = localStorage.getItem('token');
 
-    // Clear existing future unbooked slots so the new schedule replaces the old one
     try {
       await fetch('/api/availability/clear-future', {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
-    } catch {
-      // non-fatal — continue and let overlap checks handle conflicts
-    }
+    } catch { /* non-fatal */ }
 
     const durationMins = DURATION_MINS[availability.slotDuration];
     const slots = [];
+    const pad = n => String(n).padStart(2, '0');
+    const toLocal = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+    const [sh, sm] = availability.startTime.split(':').map(Number);
+    const [eh, em] = availability.endTime.split(':').map(Number);
 
-    // Generate all slots for the next 4 weeks based on the schedule
     for (let week = 0; week < 4; week++) {
       for (const day of availability.days) {
         const now = new Date();
@@ -582,15 +575,13 @@ function AppointmentsTab({ appointments, setAppointments }) {
         const date = new Date(now);
         date.setDate(now.getDate() + diff);
 
-        const [sh, sm] = availability.startTime.split(':').map(Number);
-        const [eh, em] = availability.endTime.split(':').map(Number);
-        let cur = new Date(date); cur.setHours(sh, sm, 0, 0);
-        const end = new Date(date); end.setHours(eh, em, 0, 0);
+        let cur = new Date(date.getFullYear(), date.getMonth(), date.getDate(), sh, sm, 0, 0);
+        const end = new Date(date.getFullYear(), date.getMonth(), date.getDate(), eh, em, 0, 0);
 
         while (cur < end) {
           const slotEnd = new Date(cur.getTime() + durationMins * 60000);
           if (slotEnd > end) break;
-          slots.push({ slot_start: new Date(cur).toISOString(), slot_end: slotEnd.toISOString() });
+          slots.push({ slot_start: toLocal(cur), slot_end: toLocal(slotEnd) });
           cur = new Date(slotEnd);
         }
       }
@@ -602,34 +593,20 @@ function AppointmentsTab({ appointments, setAppointments }) {
       return;
     }
 
-    let saved = 0;
-    let overlapped = 0;
-    let authFailed = 0;
-    for (const slot of slots) {
-      try {
-        const res = await fetch('/api/availability/add', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(slot),
-        });
-        if (res.ok) saved++;
-        else if (res.status === 400) overlapped++;
-        else authFailed++;
-      } catch {
-        authFailed++;
-      }
-    }
-
-    setSavingAvail(false);
-    if (slots.length === 0) {
-      setAvailError('No slots were generated — check your days and times are set correctly.');
-    } else if (authFailed > 0 && saved === 0 && overlapped === 0) {
-      setAvailError('Could not save slots — please log out and log back in, then try again.');
-    } else {
-      // saved > 0 OR overlapped > 0 — slots are in the database
+    try {
+      const res = await fetch('/api/availability/add-bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ slots }),
+      });
+      setSavingAvail(false);
+      if (!res.ok) { setAvailError('Could not save slots — please log out and log back in, then try again.'); return; }
       setAvailError('');
       setAvailSaved(true);
       try { localStorage.setItem('dp_availability', JSON.stringify(availability)); } catch { /* ignore */ }
+    } catch {
+      setSavingAvail(false);
+      setAvailError('Network error. Please try again.');
     }
   }
 
