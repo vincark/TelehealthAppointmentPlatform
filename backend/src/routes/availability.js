@@ -60,6 +60,22 @@ router.get('/provider/:provider_id', verifyToken, async (req, res) => {
   }
 });
 
+// Clear all future unbooked slots for this provider (used before saving a new schedule)
+router.delete('/clear-future', verifyToken, verifyRole([2]), async (req, res) => {
+  const provider_id = req.user.user_id;
+  try {
+    const result = await pool.query(
+      `DELETE FROM availability
+       WHERE provider_id = $1 AND is_booked = false AND slot_start > NOW()`,
+      [provider_id]
+    );
+    res.json({ message: 'Future slots cleared', deleted: result.rowCount });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // Delete an availability slot (providers only)
 router.delete('/delete/:availability_id', verifyToken, verifyRole([2]), async (req, res) => {
   const { availability_id } = req.params;

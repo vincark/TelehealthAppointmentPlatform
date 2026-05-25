@@ -12,7 +12,7 @@ const {
 
 // Book an appointment (patients only)
 router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
-  const { provider_id, availability_id, reason, notes } = req.body;
+  const { provider_id, availability_id, reason, notes, fee } = req.body;
   const patient_id = req.user.user_id;
 
   try {
@@ -38,11 +38,11 @@ router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
 
     // Create the appointment
     const newAppointment = await pool.query(
-      `INSERT INTO appointments 
-        (patient_id, provider_id, reason, notes, appointment_datetime)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO appointments
+        (patient_id, provider_id, reason, notes, appointment_datetime, fee)
+       VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [patient_id, provider_id, reason, notes, appointment_datetime]
+      [patient_id, provider_id, reason, notes, appointment_datetime, fee ?? null]
     );
 
     // Mark the slot as booked
@@ -51,10 +51,20 @@ router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
       [availability_id]
     );
 
+    const _dtIso = appointment_datetime.toISOString();
+    const _datePart = _dtIso.split('T')[0];
+    const [_yr, _mo, _dy] = _datePart.split('-').map(Number);
+    const _timePart = _dtIso.split('T')[1].slice(0, 5);
+    const [_hh, _mm] = _timePart.split(':').map(Number);
+    const _period = _hh >= 12 ? 'PM' : 'AM';
+    const _h12 = _hh % 12 || 12;
+    const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const _apptLabel = `${_dy} ${_months[_mo - 1]} ${_yr} at ${_h12}:${String(_mm).padStart(2, '0')} ${_period}`;
+
     await createNotification(
         patient_id,
         newAppointment.rows[0].appointment_id,
-        `Your appointment has been booked for ${appointment_datetime}`,
+        `Your appointment has been booked for ${_apptLabel}`,
         'Confirmation'
     );
     await createNotification(
@@ -76,12 +86,16 @@ router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
     const patient = patientResult.rows[0];
     const provider = providerResult.rows[0];
 
-    await sendConfirmationEmail(
-      patient.email,
-      `${patient.first_name} ${patient.last_name}`,
-      `Dr ${provider.first_name} ${provider.last_name}`,
-      appointment_datetime
-    );
+    try {
+      await sendConfirmationEmail(
+        patient.email,
+        `${patient.first_name} ${patient.last_name}`,
+        `Dr ${provider.first_name} ${provider.last_name}`,
+        appointment_datetime
+      );
+    } catch (emailErr) {
+      console.warn('Confirmation email failed (non-fatal):', emailErr.message);
+    }
     res.status(201).json({
       message: 'Appointment booked successfully!',
       appointment: newAppointment.rows[0]
@@ -183,11 +197,15 @@ router.put('/cancel/:appointment_id', verifyToken, verifyRole([1]), async (req, 
     );
     const patient = patientResult.rows[0];
 
-    await sendCancellationEmail(
-      patient.email,
-      `${patient.first_name} ${patient.last_name}`,
-      appointment.rows[0].appointment_datetime
-    );
+    try {
+      await sendCancellationEmail(
+        patient.email,
+        `${patient.first_name} ${patient.last_name}`,
+        appointment.rows[0].appointment_datetime
+      );
+    } catch (emailErr) {
+      console.warn('Cancellation email failed (non-fatal):', emailErr.message);
+    }
     res.json({ message: 'Appointment cancelled successfully' });
 
   } catch (error) {
@@ -244,13 +262,17 @@ router.put('/status/:appointment_id', verifyToken, verifyRole([2]), async (req, 
     const patient = patientResult.rows[0];
     const provider = providerResult.rows[0];
 
-    await sendStatusUpdateEmail(
-      patient.email,
-      `${patient.first_name} ${patient.last_name}`,
-      `Dr ${provider.first_name} ${provider.last_name}`,
-      appointment.rows[0].appointment_datetime,
-      status
-    );
+    try {
+      await sendStatusUpdateEmail(
+        patient.email,
+        `${patient.first_name} ${patient.last_name}`,
+        `Dr ${provider.first_name} ${provider.last_name}`,
+        appointment.rows[0].appointment_datetime,
+        status
+      );
+    } catch (emailErr) {
+      console.warn('Status update email failed (non-fatal):', emailErr.message);
+    }
     res.json({ message: `Appointment marked as ${status}` });
 
   } catch (error) {
@@ -261,7 +283,7 @@ router.put('/status/:appointment_id', verifyToken, verifyRole([2]), async (req, 
 
 // Reschedule an appointment (patients only)
 router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (req, res) => {
-  const { appointment_datetime, availability_id } = req.body;
+  const { availability_id } = req.body;
   const { appointment_id } = req.params;
 
   try {
@@ -315,10 +337,18 @@ router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (r
       [slot.rows[0].slot_start, appointment_id]
     );
 
+    const _rIso = slot.rows[0].slot_start.toISOString();
+    const [_rYr, _rMo, _rDy] = _rIso.split('T')[0].split('-').map(Number);
+    const [_rHh, _rMm] = _rIso.split('T')[1].slice(0, 5).split(':').map(Number);
+    const _rPeriod = _rHh >= 12 ? 'PM' : 'AM';
+    const _rH12 = _rHh % 12 || 12;
+    const _rMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const _rLabel = `${_rDy} ${_rMonths[_rMo - 1]} ${_rYr} at ${_rH12}:${String(_rMm).padStart(2, '0')} ${_rPeriod}`;
+
     await createNotification(
       req.user.user_id,
       parseInt(appointment_id),
-      `Your appointment has been rescheduled to ${slot.rows[0].slot_start}`,
+      `Your appointment has been rescheduled to ${_rLabel}`,
       'Rescheduled'
     );
 
@@ -334,13 +364,17 @@ router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (r
     const patient = patientResult.rows[0];
     const provider = providerResult.rows[0];
 
-    await sendRescheduledEmail(
-      patient.email,
-      `${patient.first_name} ${patient.last_name}`,
-      `Dr ${provider.first_name} ${provider.last_name}`,
-      slot.rows[0].slot_start
-    );
-    res.json({ 
+    try {
+      await sendRescheduledEmail(
+        patient.email,
+        `${patient.first_name} ${patient.last_name}`,
+        `Dr ${provider.first_name} ${provider.last_name}`,
+        slot.rows[0].slot_start
+      );
+    } catch (emailErr) {
+      console.warn('Reschedule email failed (non-fatal):', emailErr.message);
+    }
+    res.json({
       message: 'Appointment rescheduled successfully!', 
       appointment: result.rows[0] 
     });

@@ -25,7 +25,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
 
 // Session
 app.use(session({
@@ -69,9 +69,28 @@ app.use('/api/ratings', ratingRoutes);
 const adminRoutes = require('./src/routes/admin');
 app.use('/api/admin', adminRoutes);
 
+const paymentRoutes = require('./src/routes/payments');
+app.use('/api/payments', paymentRoutes);
+
 app.get('/', (req, res) => {
   res.send('Telehealth API is running!');
 });
+
+// Delete past unbooked slots every hour so stale availability never accumulates
+async function cleanupPastSlots() {
+  try {
+    const result = await pool.query(
+      `DELETE FROM availability WHERE is_booked = false AND slot_start < NOW()`
+    );
+    if (result.rowCount > 0) {
+      console.log(`Cleanup: removed ${result.rowCount} past unbooked slot(s)`);
+    }
+  } catch (err) {
+    console.error('Cleanup error:', err.message);
+  }
+}
+cleanupPastSlots();
+setInterval(cleanupPastSlots, 60 * 60 * 1000);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

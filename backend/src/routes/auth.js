@@ -20,7 +20,7 @@ router.post('/register', async (req, res) => {
   } = req.body;
 
   // Validate inputs
-  if (!first_name || !last_name || !email || !password) {
+  if (!email || !password) {
     return res.status(400).json({ message: 'Please fill in all required fields' });
   }
 
@@ -57,7 +57,7 @@ router.post('/register', async (req, res) => {
         (first_name, last_name, email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund, role_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 1)
        RETURNING user_id, first_name, last_name, email, role_id`,
-      [first_name, last_name, email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund]
+      [first_name || '', last_name || '', email, password_hash, phone, date_of_birth, address, emergency_contact, health_fund]
     );
 
     // Send welcome email
