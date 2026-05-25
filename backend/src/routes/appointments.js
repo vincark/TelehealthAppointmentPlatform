@@ -51,15 +51,11 @@ router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
       [availability_id]
     );
 
-    const _dtIso = appointment_datetime.toISOString();
-    const _datePart = _dtIso.split('T')[0];
-    const [_yr, _mo, _dy] = _datePart.split('-').map(Number);
-    const _timePart = _dtIso.split('T')[1].slice(0, 5);
-    const [_hh, _mm] = _timePart.split(':').map(Number);
-    const _period = _hh >= 12 ? 'PM' : 'AM';
-    const _h12 = _hh % 12 || 12;
+    // Convert UTC slot time → Sydney local time for display in notification
+    const _syd = new Date(appointment_datetime.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
     const _months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const _apptLabel = `${_dy} ${_months[_mo - 1]} ${_yr} at ${_h12}:${String(_mm).padStart(2, '0')} ${_period}`;
+    const _hh = _syd.getHours(), _mm = _syd.getMinutes();
+    const _apptLabel = `${_syd.getDate()} ${_months[_syd.getMonth()]} ${_syd.getFullYear()} at ${_hh % 12 || 12}:${String(_mm).padStart(2, '0')} ${_hh >= 12 ? 'PM' : 'AM'}`;
 
     await createNotification(
         patient_id,
@@ -337,13 +333,11 @@ router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (r
       [slot.rows[0].slot_start, appointment_id]
     );
 
-    const _rIso = slot.rows[0].slot_start.toISOString();
-    const [_rYr, _rMo, _rDy] = _rIso.split('T')[0].split('-').map(Number);
-    const [_rHh, _rMm] = _rIso.split('T')[1].slice(0, 5).split(':').map(Number);
-    const _rPeriod = _rHh >= 12 ? 'PM' : 'AM';
-    const _rH12 = _rHh % 12 || 12;
+    // Convert UTC slot time → Sydney local time for display in notification
+    const _rSyd = new Date(slot.rows[0].slot_start.toLocaleString('en-US', { timeZone: 'Australia/Sydney' }));
     const _rMonths = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    const _rLabel = `${_rDy} ${_rMonths[_rMo - 1]} ${_rYr} at ${_rH12}:${String(_rMm).padStart(2, '0')} ${_rPeriod}`;
+    const _rHh = _rSyd.getHours(), _rMm = _rSyd.getMinutes();
+    const _rLabel = `${_rSyd.getDate()} ${_rMonths[_rSyd.getMonth()]} ${_rSyd.getFullYear()} at ${_rHh % 12 || 12}:${String(_rMm).padStart(2, '0')} ${_rHh >= 12 ? 'PM' : 'AM'}`;
 
     await createNotification(
       req.user.user_id,
