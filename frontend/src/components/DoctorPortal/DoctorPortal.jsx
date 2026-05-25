@@ -240,8 +240,10 @@ function ProfileTab({ doctor, onSave }) {
     phone: doctor?.phone ?? '',
     sex: doctor?.sex ?? '',
     specialty: doctor?.specialty ?? '',
+    degree: doctor?.degree ?? '',
     languages: doctor?.languages ?? [],
     overview: doctor?.overview ?? '',
+    baseFee: doctor?.baseFee ?? '75',
   });
   const [photoPreview, setPhotoPreview] = useState(doctor?.photoUrl ?? null);
   const [photoBase64, setPhotoBase64] = useState(null);
@@ -262,8 +264,10 @@ function ProfileTab({ doctor, onSave }) {
         phone: doctor.phone,
         sex: doctor.sex,
         specialty: doctor.specialty,
+        degree: doctor.degree ?? '',
         languages: doctor.languages,
         overview: doctor.overview,
+        baseFee: doctor.baseFee ?? '75',
       });
       setPhotoPreview(doctor.photoUrl ?? null);
       setPhotoBase64(null);
@@ -340,9 +344,11 @@ function ProfileTab({ doctor, onSave }) {
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           specialisation: form.specialty,
+          degree: form.degree || null,
           sex: form.sex,
           spoken_language: form.languages.join(', '),
           bio: form.overview,
+          base_fee: parseFloat(form.baseFee) || 75,
           ...(photoBase64 ? { profile_picture: photoBase64 } : {}),
         }),
       });
@@ -431,6 +437,18 @@ function ProfileTab({ doctor, onSave }) {
             </select>
             {errors.specialty && <span className="dp-error">{errors.specialty}</span>}
           </div>
+          <div className="dp-field">
+            <label htmlFor="dp-degree">Degree / Qualification</label>
+            <input id="dp-degree" name="degree" type="text" value={form.degree} onChange={handleChange}
+              placeholder="e.g. MBBS, MD, FRACGP" />
+          </div>
+          <div className="dp-field">
+            <label htmlFor="dp-baseFee">Base Consultation Fee (AUD) <span aria-hidden="true">*</span></label>
+            <input id="dp-baseFee" name="baseFee" type="number" min="0" step="5"
+              value={form.baseFee} onChange={handleChange}
+              placeholder="e.g. 75" />
+            <span className="dp-field-hint">Business hours: this amount · After hours &amp; weekends: +20%</span>
+          </div>
         </div>
       </div>
 
@@ -472,11 +490,12 @@ function ProfileTab({ doctor, onSave }) {
 // ── Appointments tab ──
 function AppointmentsTab({ appointments, setAppointments }) {
   const [consultAppt, setConsultAppt] = useState(null);
-  const [availability, setAvailability] = useState({
-    days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-    startTime: '09:00',
-    endTime: '17:00',
-    slotDuration: '30 minutes',
+  const [availability, setAvailability] = useState(() => {
+    try {
+      const saved = localStorage.getItem('dp_availability');
+      if (saved) return JSON.parse(saved);
+    } catch { /* ignore */ }
+    return { days: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'], startTime: '09:00', endTime: '17:00', slotDuration: '30 minutes' };
   });
   const [savingAvail, setSavingAvail] = useState(false);
   const [availSaved, setAvailSaved] = useState(false);
@@ -503,7 +522,19 @@ function AppointmentsTab({ appointments, setAppointments }) {
   async function saveAvailability(e) {
     e.preventDefault();
     setSavingAvail(true);
+    setAvailError('');
     const token = localStorage.getItem('token');
+
+    // Clear existing future unbooked slots so the new schedule replaces the old one
+    try {
+      await fetch('/api/availability/clear-future', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {
+      // non-fatal — continue and let overlap checks handle conflicts
+    }
+
     const durationMins = DURATION_MINS[availability.slotDuration];
     const slots = [];
 
@@ -563,6 +594,7 @@ function AppointmentsTab({ appointments, setAppointments }) {
       // saved > 0 OR overlapped > 0 — slots are in the database
       setAvailError('');
       setAvailSaved(true);
+      try { localStorage.setItem('dp_availability', JSON.stringify(availability)); } catch { /* ignore */ }
     }
   }
 
@@ -852,11 +884,13 @@ function DoctorPortal() {
           phone:      d.phone ?? '',
           sex:        d.sex ?? '',
           specialty:  d.specialisation ?? '',
+          degree:     d.degree ?? '',
           languages:  d.spoken_language
             ? (Array.isArray(d.spoken_language) ? d.spoken_language : d.spoken_language.split(',').map(s => s.trim()))
             : [],
           overview:   d.bio ?? '',
           photoUrl:   d.profile_picture ?? null,
+          baseFee:    d.base_fee ? String(d.base_fee) : '75',
         });
       })
       .catch(() => {});

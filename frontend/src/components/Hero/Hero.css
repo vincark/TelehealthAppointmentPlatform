@@ -1,13 +1,13 @@
-/* 
+/* ============================================
    HERO
- */
+   ============================================ */
 
 .hero {
   position: relative;
   padding-block: var(--space-20) var(--space-16);
   overflow: hidden;
 
-  /* Soft warm gradient background  */
+  /* Soft warm gradient background — like base44 */
   background:
     radial-gradient(circle at 80% 30%, rgba(253, 230, 211, 0.6), transparent 50%),
     radial-gradient(circle at 20% 70%, var(--color-primary-soft), transparent 60%),
@@ -26,7 +26,7 @@
   align-items: center;
 }
 
-/*  LEFT — text content  */
+/* ===== LEFT — text content ===== */
 .hero-content {
   max-width: 580px;
 }
@@ -82,7 +82,7 @@
   margin-bottom: var(--space-8);
 }
 
-/* BUTTONS  */
+/* ===== BUTTONS ===== */
 .hero-actions {
   display: flex;
   gap: var(--space-4);
@@ -90,7 +90,7 @@
   margin-bottom: var(--space-10);
 }
 
-/* Reusable .btn  */
+/* Reusable .btn — we'll move this later to a shared file */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -128,7 +128,7 @@
   border-color: var(--color-text-muted);
 }
 
-/*  TRUST BADGES  */
+/* ===== TRUST BADGES ===== */
 .hero-badges {
   display: flex;
   flex-wrap: wrap;
@@ -151,8 +151,8 @@
   color: var(--color-primary);
 }
 
-/*  RIGHT — visual placeholder */
-/* RIGHT — hero image  */
+/* ===== RIGHT — visual placeholder ===== */
+/* ===== RIGHT — hero image ===== */
 .hero-visual {
   position: relative;
   height: 500px;
@@ -171,7 +171,7 @@
   display: block;
 }
 
-/* RESPONSIVE  */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .hero-inner {
     grid-template-columns: 1fr;

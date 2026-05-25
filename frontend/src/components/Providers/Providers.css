@@ -1,6 +1,6 @@
-/* 
+/* ============================================
    PROVIDERS PAGE
-    */
+   ============================================ */
 
 .prov-page {
   min-height: 100vh;
@@ -289,6 +289,12 @@
   background: var(--color-primary-soft);
   color: var(--color-primary-dark);
   font-weight: 600;
+}
+
+.prov-tag--unavailable {
+  background: #f3f4f6;
+  color: #9ca3af;
+  font-weight: 500;
 }
 
 .prov-tag--provider-note {

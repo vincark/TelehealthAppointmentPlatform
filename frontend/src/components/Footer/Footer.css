@@ -1,5 +1,6 @@
-/*FOOTER*/
-   
+/* ============================================
+   FOOTER
+   ============================================ */
 
 .footer {
   background: #0A1230;   /* even darker than CTA — gives layered feel */
@@ -17,7 +18,7 @@
   gap: var(--space-12);
 }
 
-/* BRAND COLUMN */
+/* ===== BRAND COLUMN ===== */
 .footer-logo-row {
   display: inline-flex;
   align-items: center;
@@ -49,7 +50,7 @@
   max-width: 280px;
 }
 
-/* COLUMNS  */
+/* ===== COLUMNS ===== */
 .footer-heading {
   font-size: var(--text-base);
   font-weight: 700;
@@ -91,7 +92,7 @@
   flex-shrink: 0;
 }
 
-/*  BOTTOM BAR  */
+/* ===== BOTTOM BAR ===== */
 .footer-bottom {
   border-top: 1px solid rgba(255, 255, 255, 0.1);
   padding: var(--space-6);
@@ -129,7 +130,7 @@
   color: white;
 }
 
-/* RESPONSIVE  */
+/* ===== RESPONSIVE ===== */
 @media (max-width: 1024px) {
   .footer-inner {
     grid-template-columns: 1fr 1fr;

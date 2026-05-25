@@ -1,6 +1,6 @@
-/* 
+/* ============================================
    PATIENT PORTAL
-    */
+   ============================================ */
 
 .pp-page {
   display: flex;
@@ -1469,9 +1469,70 @@
   }
 }
 
+/* ── Hamburger button (hidden on desktop) ── */
+.pp-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-ink);
+  padding: 4px;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+}
+.pp-hamburger:hover { background: var(--color-border); }
+
+.pp-nav-left {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* ── Sidebar close button (hidden on desktop) ── */
+.pp-sidebar-close {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: var(--color-ink-light);
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+.pp-sidebar-close:hover { background: var(--color-border); color: var(--color-ink); }
+
+/* ── Sidebar overlay ── */
+.pp-sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 99;
+}
+
 @media (max-width: 900px) {
+  .pp-hamburger { display: flex; }
+  .pp-sidebar-close { display: block; }
+  .pp-sidebar-overlay { display: block; }
+
   .pp-sidebar {
-    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 100;
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+
+  .pp-sidebar--open {
+    transform: translateX(0);
   }
 
   .pp-main {
@@ -1617,31 +1678,161 @@
   font-size: 1rem;
 }
 
-/* Stripe card input */
-.pp-card-input {
+/* ── Payment step ── */
+.pp-payment-section {
+  padding: var(--space-6) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.pp-payment-amount {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+}
+
+.pp-payment-label {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.pp-payment-value {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.pp-card-element-wrap {
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-md);
-  padding: var(--space-3) var(--space-4);
-  margin-top: var(--space-2);
-  transition: border-color 0.15s ease;
+  padding: var(--space-4);
   background: var(--color-bg);
+  transition: border-color 0.15s ease;
 }
 
-.pp-card-input:focus-within {
+.pp-card-element-wrap:focus-within {
   border-color: var(--color-primary);
-  outline: none;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12);
 }
 
-.pp-card-hint {
+.pp-payment-actions {
+  display: flex;
+  gap: var(--space-3);
+}
+
+.pp-payment-actions .pp-btn-primary {
+  flex: 1;
+}
+
+.pp-payment-actions .pp-btn-outline {
+  flex-shrink: 0;
+}
+
+.pp-payment-secure {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-  margin: var(--space-2) 0 0;
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
+  text-align: center;
+  margin: 0;
 }
 
-[data-theme="dark"] .pp-card-input {
+/* ── Pay Now button ── */
+.pp-btn-pay {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 14px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: var(--radius-pill);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font-body);
+}
+
+.pp-btn-pay:hover {
+  background: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+/* ── Paid badge ── */
+.pp-paid-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  background: #d1fae5;
+  color: #065f46;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-pill);
+  vertical-align: middle;
+}
+
+/* ── Payment modal internals ── */
+.pp-payment-summary {
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+.pp-payment-row {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.pp-payment-row:last-child {
+  border-bottom: none;
+}
+
+.pp-payment-row span:first-child {
+  color: var(--color-text-muted);
+}
+
+.pp-payment-row--total {
   background: var(--color-bg);
-  border-color: var(--color-border);
+}
+
+.pp-payment-row--total span:first-child {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.pp-payment-value {
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+.pp-payment-card-label {
+  display: block;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-ink);
+  margin-bottom: var(--space-2);
+}
+
+.pp-payment-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-10) var(--space-8);
+  color: #065f46;
+  font-weight: 600;
+  font-size: var(--text-base);
+  text-align: center;
 }
