@@ -119,6 +119,13 @@ const sendStatusUpdateEmail = async (toEmail, patientName, providerName, appoint
           <p><strong>Date & Time:</strong> ${new Date(appointmentDatetime).toLocaleString('en-AU', { dateStyle: 'full', timeStyle: 'short' })}</p>
           <p><strong>Status:</strong> ${status}</p>
         </div>
+        ${isConfirmed ? `
+        <div style="background: #fffbeb; border: 1px solid #f59e0b; padding: 15px; border-radius: 8px; margin: 20px 0;">
+          <p style="margin: 0; font-weight: bold; color: #92400e;">⚠️ Action Required — Payment Needed</p>
+          <p style="margin: 8px 0 0; color: #92400e;">Your appointment has been confirmed by your provider! To finalise your booking, please log in to the platform and complete your payment of <strong>$75 AUD</strong>.</p>
+          <p style="margin: 8px 0 0; color: #92400e;">Your appointment will not be finalised until payment is received.</p>
+        </div>
+        ` : ''}
         <br>
         <p>Kind regards,</p>
         <p><strong>Telehealth Platform Team</strong></p>

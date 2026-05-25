@@ -29,6 +29,10 @@ router.post('/create-payment-intent', verifyToken, verifyRole([1]), async (req, 
       return res.status(400).json({ message: 'This appointment has already been paid for' });
     }
 
+    if (appointment.rows[0].status !== 'Confirmed') {
+      return res.status(400).json({ message: 'You can only pay for confirmed appointments' });
+    }
+
     // Fee comes from the database automatically — no user input needed!
     const amount = appointment.rows[0].consultation_fee;
 

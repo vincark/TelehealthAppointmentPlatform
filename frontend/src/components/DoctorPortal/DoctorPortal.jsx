@@ -708,17 +708,9 @@ function AppointmentsTab({ appointments, setAppointments }) {
                   <td><span className={`dp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
                   <td className="dp-table-actions">
                     {a.status === 'confirmed' && (
-                      <>
-                        <button
-                          className="dp-btn-video"
-                          onClick={() => window.open(`https://meet.jit.si/telehealth-appt-${a.id}`, '_blank')}
-                        >
-                          <IconVideo /> Video Call
-                        </button>
-                        <button className="dp-btn-notes" onClick={() => setConsultAppt(a)}>
-                          <IconClipboard /> Add Notes
-                        </button>
-                      </>
+                      <button className="dp-btn-notes" onClick={() => setConsultAppt(a)}>
+                        <IconClipboard /> Add Notes
+                      </button>
                     )}
                     {a.status === 'completed' && (
                       <button className="dp-btn-notes" onClick={() => setConsultAppt(a)}>
@@ -804,7 +796,7 @@ function DashboardTab({ appointments, doctor }) {
     { label: "Today's Patients",  value: appointments.filter(a => a.date === today).length,                                          cls: 'dp-dstat--green' },
     { label: 'Pending Actions',   value: appointments.filter(a => a.status === 'pending').length,                                    cls: 'dp-dstat--yellow' },
     { label: 'Completed',         value: appointments.filter(a => a.status === 'completed').length,                                  cls: 'dp-dstat--blue' },
-    { label: 'Upcoming (7 days)', value: appointments.filter(a => a.date >= today && a.date <= in7Days).length,                      cls: 'dp-dstat--purple' },
+    { label: 'Upcoming (7 days)', value: appointments.filter(a => a.date >= today && a.date <= in7Days && (a.status === 'confirmed' || a.status === 'scheduled')).length, cls: 'dp-dstat--purple' },
   ];
 
   return (
@@ -912,6 +904,10 @@ function DoctorPortal() {
           photoUrl:   d.profile_picture ?? null,
           baseFee:    d.base_fee ? String(d.base_fee) : '75',
         });
+        // Redirect to dashboard if profile is already set up
+        if (d.specialisation && d.phone) {
+          setActiveTab('dashboard');
+        }
       })
       .catch(() => {});
 
