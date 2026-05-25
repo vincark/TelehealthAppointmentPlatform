@@ -59,7 +59,11 @@ function Register() {
       });
       const data = await res.json();
       if (!res.ok) { setApiError(data.message || 'Registration failed. Please try again.'); return; }
-      setSubmitted(true);
+
+      // Auto login — save token and user, then go straight to patient portal!
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      window.location.href = '/patient-portal?tab=profile';
     } catch {
       setApiError('Could not connect to the server. Please try again.');
     } finally {

@@ -334,7 +334,7 @@ function PaymentStep({ appointmentId, consultationFee, clientSecret, token, onSu
 }
 
 // ── Booking Modal ──
-function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
+function BookingModal({ onClose, onBooked, preselectedProviderId = null, rescheduleAppointmentId = null }) {
   const [step, setStep] = useState('providers');
   const [appointmentId, setAppointmentId] = useState(null);
   const [consultationFee, setConsultationFee] = useState(null);
@@ -395,7 +395,21 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
     setBooking(true);
     setError('');
     try {
-      // Step 1 — Book the appointment
+      // Reschedule flow
+      if (rescheduleAppointmentId) {
+        const res = await fetch(`/api/appointments/reschedule/${rescheduleAppointmentId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ availability_id: selectedSlot.availability_id }),
+        });
+        const data = await res.json();
+        if (!res.ok) { setError(data.message || 'Reschedule failed. Please try again.'); return; }
+        onBooked();
+        onClose();
+        return;
+      }
+
+      // Booking flow
       const res = await fetch('/api/appointments/book', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -425,10 +439,9 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
         return;
       }
 
-      // Step 2 — Create a payment intent and move to payment step
+      // Create payment intent and move to payment step
       const apptId = data.appointment.appointment_id;
       setAppointmentId(apptId);
-
       const payRes = await fetch('/api/payments/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -436,7 +449,6 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
       });
       const payData = await payRes.json();
       if (!payRes.ok) { setError(payData.message || 'Payment setup failed.'); return; }
-
       setClientSecret(payData.clientSecret);
       setConsultationFee(payData.amount);
       setStep('payment');
@@ -448,21 +460,13 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
     }
   }
 
-  // ── Timetable helpers ──
+  // Timetable helpers
   function slotLocalDate(slot) {
     const d = new Date(slot.slot_start);
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   }
   function formatDateHeader(dateStr) {
     return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
-  }
-  function getSlotRate(slot) {
-    const d = new Date(slot.slot_start);
-    const day = d.getDay(); // 0=Sun, 6=Sat
-    const h = d.getHours();
-    if (day === 0 || day === 6) return { rate: 90, type: 'after' };
-    if (h >= 8 && h < 18) return { rate: 75, type: 'business' };
-    return { rate: 90, type: 'after' };
   }
   const availableDates = [...new Set(slots.map(slotLocalDate))].sort();
   const currentDate   = selectedDate || availableDates[0] || null;
@@ -550,10 +554,7 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
                 <div className="pp-slot-legend-wrap">
                   <div className="pp-slot-legend">
                     <span className="pp-legend-item pp-legend-business">
-                      <span className="pp-legend-dot" /> Business Hours (Mon–Fri 8am–6pm) $75
-                    </span>
-                    <span className="pp-legend-item pp-legend-after">
-                      <span className="pp-legend-dot" /> After Hours &amp; Weekends $90
+                      <span className="pp-legend-dot" /> Consultation Fee: $75
                     </span>
                   </div>
                   <span className="pp-bulk-bill">✔ Bulk Bill Accepted</span>
@@ -567,13 +568,12 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
                     </div>
                     <div className="pp-timetable-grid">
                       {morningSlots.map(s => {
-                        const { rate, type } = getSlotRate(s);
                         return (
                           <button key={s.availability_id}
-                            className={`pp-time-slot pp-time-slot--${type}`}
+                            className="pp-time-slot pp-time-slot--business"
                             onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
                             <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
-                            <span className="pp-slot-rate">${rate}</span>
+                            <span className="pp-slot-rate">$75</span>
                           </button>
                         );
                       })}
@@ -589,13 +589,12 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
                     </div>
                     <div className="pp-timetable-grid">
                       {daytimeSlots.map(s => {
-                        const { rate, type } = getSlotRate(s);
                         return (
                           <button key={s.availability_id}
-                            className={`pp-time-slot pp-time-slot--${type}`}
+                            className="pp-time-slot pp-time-slot--business"
                             onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
                             <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
-                            <span className="pp-slot-rate">${rate}</span>
+                            <span className="pp-slot-rate">$75</span>
                           </button>
                         );
                       })}
@@ -611,13 +610,12 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
                     </div>
                     <div className="pp-timetable-grid">
                       {eveningSlots.map(s => {
-                        const { rate, type } = getSlotRate(s);
                         return (
                           <button key={s.availability_id}
-                            className={`pp-time-slot pp-time-slot--${type}`}
+                            className="pp-time-slot pp-time-slot--business"
                             onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
                             <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
-                            <span className="pp-slot-rate">${rate}</span>
+                            <span className="pp-slot-rate">$75</span>
                           </button>
                         );
                       })}
@@ -654,12 +652,11 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
                 </span>
               </div>
               {selectedSlot && (() => {
-                const { rate, type } = getSlotRate(selectedSlot);
                 return (
                   <div className="pp-confirm-row">
                     <span className="pp-confirm-label">Consultation Fee</span>
-                    <span className={`pp-confirm-value pp-confirm-fee pp-confirm-fee--${type}`}>
-                      ${rate} <span className="pp-confirm-bulk">· Bulk Bill Accepted</span>
+                    <span className={`pp-confirm-value pp-confirm-fee pp-confirm-fee--business`}>
+                      $75 <span className="pp-confirm-bulk">· Bulk Bill Accepted</span>
                     </span>
                   </div>
                 );
@@ -700,7 +697,7 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null }) {
 }
 
 // ── Overview tab ──
-function OverviewTab({ patient, appointments, onBook }) {
+function OverviewTab({ patient, appointments, onBook, onViewAppointments }) {
   const today = new Date().toISOString().split('T')[0];
 
   const stats = [
@@ -772,7 +769,7 @@ function OverviewTab({ patient, appointments, onBook }) {
         <div className="pp-card">
           <div className="pp-card-header">
             <h3 className="pp-section-title">Next Appointment</h3>
-            <button className="pp-card-link" onClick={() => onBook()}>View all →</button>
+            <button className="pp-card-link" onClick={onViewAppointments}>View all →</button>
           </div>
           {!nextAppt ? (
             <div className="pp-no-appt">
@@ -838,7 +835,7 @@ function OverviewTab({ patient, appointments, onBook }) {
 }
 
 // ── Appointments tab ──
-function AppointmentsTab({ appointments, setAppointments, onBook }) {
+function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }) {
   const today = new Date().toISOString().split('T')[0];
   const [cancelling, setCancelling] = useState(null);
 
@@ -914,14 +911,12 @@ function AppointmentsTab({ appointments, setAppointments, onBook }) {
                     <td>{a.fee ? `$${a.fee}` : '—'}</td>
                     <td><span className={`pp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
                     <td className="pp-table-actions">
-                      {a.status === 'confirmed' && (
-                        <button
-                          className="pp-btn-video"
-                          onClick={() => window.open(`https://meet.jit.si/telehealth-appt-${a.id}`, '_blank')}
-                        >
-                          Join Call
-                        </button>
-                      )}
+                      <button
+                        className="pp-btn-cancel"
+                        onClick={() => onReschedule(a.id, a.providerId)}
+                      >
+                        Reschedule
+                      </button>
                       <button
                         className="pp-btn-cancel"
                         onClick={() => cancelAppointment(a.id)}
@@ -1294,6 +1289,7 @@ function PatientPortal() {
   const [notifications, setNotifications] = useState([]);
   const [showBooking, setShowBooking] = useState(false);
   const [bookProviderId, setBookProviderId] = useState(null);
+  const [rescheduleId, setRescheduleId] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -1308,17 +1304,16 @@ function PatientPortal() {
     const params = new URLSearchParams(window.location.search);
     const bookId = params.get('book');
     const openBooking = params.get('openBooking');
-    const tab = params.get('tab');
-    if (tab) {
-      setActiveTab(tab);
-      window.history.replaceState({}, '', '/patient-portal');
-    }
+    const openTab = params.get('tab');
     if (bookId) {
       setBookProviderId(bookId);
       setShowBooking(true);
       window.history.replaceState({}, '', '/patient-portal');
     } else if (openBooking) {
       setShowBooking(true);
+      window.history.replaceState({}, '', '/patient-portal');
+    } else if (openTab) {
+      setActiveTab(openTab);
       window.history.replaceState({}, '', '/patient-portal');
     }
 
@@ -1354,7 +1349,7 @@ function PatientPortal() {
           notes:        a.notes ?? '',
           prescription: a.prescription ?? '',
           status:       a.status.toLowerCase(),
-          fee:          a.fee ?? null,
+          fee:          a.consultation_fee ? `${a.consultation_fee / 100}` : null,
         })));
       })
       .catch(() => {});
@@ -1393,12 +1388,16 @@ function PatientPortal() {
       .then(data => {
         if (!data?.appointments) return;
         setAppointments(data.appointments.map(a => ({
-          id:     a.appointment_id,
-          doctor: `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
-          date:   a.appointment_datetime.split('T')[0],
-          time:   a.appointment_datetime.split('T')[1]?.slice(0, 5) ?? '',
-          reason: a.reason ?? '',
-          status: a.status.toLowerCase(),
+          id:           a.appointment_id,
+          providerId:   a.provider_id,
+          doctor:       `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
+          date:         a.appointment_datetime.split('T')[0],
+          time:         a.appointment_datetime.split('T')[1]?.slice(0, 5) ?? '',
+          reason:       a.reason ?? '',
+          notes:        a.notes ?? '',
+          prescription: a.prescription ?? '',
+          status:       a.status.toLowerCase(),
+          fee:          a.consultation_fee ? `${a.consultation_fee / 100}` : null,
         })));
       })
       .catch(() => {});
@@ -1413,10 +1412,19 @@ function PatientPortal() {
 
         <main className="pp-main">
           {activeTab === 'overview' && (
-            <OverviewTab patient={patient} appointments={appointments} onBook={() => setShowBooking(true)} />
+            <OverviewTab patient={patient} appointments={appointments} onBook={() => setShowBooking(true)} onViewAppointments={() => setActiveTab('appointments')} />
           )}
           {activeTab === 'appointments' && (
-            <AppointmentsTab appointments={appointments} setAppointments={setAppointments} onBook={() => setShowBooking(true)} />
+            <AppointmentsTab
+              appointments={appointments}
+              setAppointments={setAppointments}
+              onBook={() => setShowBooking(true)}
+              onReschedule={(apptId, providerId) => {
+                setRescheduleId(apptId);
+                setBookProviderId(providerId);
+                setShowBooking(true);
+              }}
+            />
           )}
           {activeTab === 'profile' && (
             <HealthProfileTab patient={patient} onSave={setPatient} />
@@ -1427,9 +1435,10 @@ function PatientPortal() {
 
       {showBooking && (
         <BookingModal
-          onClose={() => { setShowBooking(false); setBookProviderId(null); }}
+          onClose={() => { setShowBooking(false); setBookProviderId(null); setRescheduleId(null); }}
           onBooked={handleBooked}
           preselectedProviderId={bookProviderId}
+          rescheduleAppointmentId={rescheduleId}
         />
       )}
     </div>

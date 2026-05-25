@@ -68,8 +68,16 @@ router.post('/register', async (req, res) => {
       console.error('Welcome email failed:', emailError);
     }
 
+    // Create a token straight away so user is logged in immediately after registration
+    const token = jwt.sign(
+      { user_id: newUser.rows[0].user_id, role_id: newUser.rows[0].role_id },
+      process.env.JWT_SECRET,
+      { expiresIn: '8h' }
+    );
+
     res.status(201).json({
       message: 'Registration successful!',
+      token,
       user: newUser.rows[0]
     });
 

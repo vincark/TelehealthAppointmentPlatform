@@ -105,11 +105,13 @@ router.get('/my', verifyToken, async (req, res) => {
       appointments = await pool.query(
         `SELECT a.*, 
           u.first_name AS provider_first_name, 
-          u.last_name AS provider_last_name
-         FROM appointments a
-         JOIN users u ON a.provider_id = u.user_id
-         WHERE a.patient_id = $1
-         ORDER BY a.appointment_datetime DESC`,
+          u.last_name AS provider_last_name,
+          pp.consultation_fee
+        FROM appointments a
+        JOIN users u ON a.provider_id = u.user_id
+        LEFT JOIN provider_profiles pp ON a.provider_id = pp.provider_id
+        WHERE a.patient_id = $1
+        ORDER BY a.appointment_datetime DESC`,
         [user_id]
       );
     } else if (role_id === 2) {
@@ -347,6 +349,9 @@ router.put('/reschedule/:appointment_id', verifyToken, verifyRole([1]), async (r
 
   } catch (error) {
     console.error(error);
+    if (error.code === '23505') {
+      return res.status(400).json({ message: 'You already have an appointment at this time. Please choose a different slot.' });
+    }
     res.status(500).json({ message: 'Server error' });
   }
 });
