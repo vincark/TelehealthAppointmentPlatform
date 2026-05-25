@@ -1117,8 +1117,51 @@ function HealthProfileTab({ patient, onSave }) {
 
   async function handleSave(e) {
     e.preventDefault();
-    setSaving(true);
     setError('');
+
+    // Validation
+    if (!form.firstName.trim() || !form.lastName.trim()) {
+      setError('First name and last name are required!');
+      return;
+    }
+
+    if (form.phone && !/^\d{10}$/.test(form.phone.replace(/\s/g, ''))) {
+      setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    if (form.dob) {
+      const dob = new Date(form.dob);
+      const today = new Date();
+      if (dob >= today) { setError('Date of birth must be in the past'); return; }
+    }
+
+    if (!form.address.trim()) {
+      setError('Address is required');
+      return;
+    }
+
+    if (!form.emergencyContactName.trim()) {
+      setError('Emergency contact name is required');
+      return;
+    }
+
+    if (!form.emergencyContactRelation.trim()) {
+      setError('Emergency contact relationship is required');
+      return;
+    }
+
+    if (!form.emergencyContactPhone.trim()) {
+      setError('Emergency contact phone number is required');
+      return;
+    }
+
+    if (!/^\d{10}$/.test(form.emergencyContactPhone.replace(/\s/g, ''))) {
+      setError('Please enter a valid 10-digit emergency contact phone number');
+      return;
+    }
+
+    setSaving(true);
     try {
       const token = localStorage.getItem('token');
       const res = await fetch('/api/users/me', {
@@ -1141,6 +1184,10 @@ function HealthProfileTab({ patient, onSave }) {
       if (!res.ok) { setError(data.message || 'Failed to save. Please try again.'); return; }
       setSaved(true);
       onSave?.({ ...patient, ...form });
+      setTimeout(() => {
+        onSave?.({ ...patient, ...form });
+        window.location.href = '/patient-portal?tab=overview';
+      }, 1500);
     } catch {
       setError('Could not connect. Please try again.');
     } finally {
@@ -1155,11 +1202,11 @@ function HealthProfileTab({ patient, onSave }) {
         <p className="pp-profile-hint">Fill in your details below. This information helps your doctor provide better care.</p>
         <div className="pp-grid-2">
           <div className="pp-field">
-            <label htmlFor="pp-firstName">First Name</label>
+            <label htmlFor="pp-firstName">First Name <span style={{ color: '#ef4444' }}>*</span></label>
             <input id="pp-firstName" name="firstName" type="text" value={form.firstName} onChange={handleChange} placeholder="Jane" />
           </div>
           <div className="pp-field">
-            <label htmlFor="pp-lastName">Last Name</label>
+            <label htmlFor="pp-lastName">Last Name <span style={{ color: '#ef4444' }}>*</span></label>
             <input id="pp-lastName" name="lastName" type="text" value={form.lastName} onChange={handleChange} placeholder="Smith" />
           </div>
           <div className="pp-field">
@@ -1167,11 +1214,11 @@ function HealthProfileTab({ patient, onSave }) {
             <input id="pp-email" name="email" type="email" value={form.email} readOnly className="pp-input--readonly" />
           </div>
           <div className="pp-field">
-            <label htmlFor="pp-phone">Phone Number</label>
+            <label htmlFor="pp-phone">Phone Number <span style={{ color: '#ef4444' }}>*</span></label>
             <input id="pp-phone" name="phone" type="tel" value={form.phone} onChange={handleChange} placeholder="+61 4XX XXX XXX" />
           </div>
           <div className="pp-field">
-            <label htmlFor="pp-dob">Date of Birth</label>
+            <label htmlFor="pp-dob">Date of Birth <span style={{ color: '#ef4444' }}>*</span></label>
             <input id="pp-dob" name="dob" type="date" value={form.dob} onChange={handleChange} />
           </div>
           <div className="pp-field">
@@ -1186,11 +1233,11 @@ function HealthProfileTab({ patient, onSave }) {
             </select>
           </div>
           <div className="pp-field pp-field--full">
-            <label htmlFor="pp-address">Address</label>
+            <label htmlFor="pp-address">Address <span style={{ color: '#ef4444' }}>*</span></label>
             <input id="pp-address" name="address" type="text" value={form.address} onChange={handleChange} placeholder="123 Main St, Sydney NSW 2000" />
           </div>
           <div className="pp-field pp-field--full">
-            <label>Emergency Contact</label>
+            <label htmlFor="pp-ec">Emergency Contact <span style={{ color: '#ef4444' }}>*</span></label>
             <div className="pp-grid-2" style={{ marginTop: '4px' }}>
               <div className="pp-field">
                 <label htmlFor="pp-ec-name" style={{ fontSize: '12px', color: 'var(--color-text-muted)' }}>Full Name</label>
