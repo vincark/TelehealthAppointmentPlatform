@@ -101,10 +101,16 @@ function ProviderCard({ provider, userRole }) {
               {provider.degree}
             </span>
           )}
-          <span className="prov-tag prov-tag--available">
-            <span className="prov-available-dot" />
-            Available Now
-          </span>
+          {provider.has_available_slots ? (
+            <span className="prov-tag prov-tag--available">
+              <span className="prov-available-dot" />
+              Available Now
+            </span>
+          ) : (
+            <span className="prov-tag prov-tag--unavailable">
+              No slots available
+            </span>
+          )}
         </div>
 
         <div className="prov-card-footer">

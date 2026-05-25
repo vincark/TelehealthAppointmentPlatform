@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import './PatientPortal.css';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
-import './PatientPortal.css';
 
 function formatRelativeTime(dateStr) {
   const mins = Math.floor((Date.now() - new Date(dateStr)) / 60000);
@@ -129,7 +129,13 @@ const IconChevronRight = () => (
 );
 
 // ── Top navigation ──
-function PatientNav({ patient, notifications, onMarkAllRead }) {
+const IconMenu = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
+    <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+  </svg>
+);
+
+function PatientNav({ patient, notifications, onMarkAllRead, onMenuClick }) {
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef(null);
   const unread = notifications.filter(n => !n.read).length;
@@ -152,10 +158,15 @@ function PatientNav({ patient, notifications, onMarkAllRead }) {
   return (
     <nav className="pp-nav">
       <div className="pp-nav-inner">
-        <a href="/" className="pp-nav-brand">
-          <span className="pp-nav-logo-circle" aria-hidden="true"><IconHeart /></span>
-          <span className="pp-nav-wordmark">Telehealth</span>
-        </a>
+        <div className="pp-nav-left">
+          <button className="pp-hamburger" onClick={onMenuClick} aria-label="Open menu">
+            <IconMenu />
+          </button>
+          <a href="/" className="pp-nav-brand">
+            <span className="pp-nav-logo-circle" aria-hidden="true"><IconHeart /></span>
+            <span className="pp-nav-wordmark">Telehealth</span>
+          </a>
+        </div>
         <div className="pp-nav-actions">
           <span className="pp-nav-welcome">Welcome back, {patient?.firstName ?? '…'}</span>
 
@@ -203,7 +214,7 @@ function PatientNav({ patient, notifications, onMarkAllRead }) {
 }
 
 // ── Sidebar ──
-function Sidebar({ activeTab, onTabChange, patient }) {
+function Sidebar({ activeTab, onTabChange, patient, isOpen, onClose }) {
   const initials = `${patient?.firstName?.[0] ?? ''}${patient?.lastName?.[0] ?? ''}`.toUpperCase() || 'P';
 
   const navItems = [
@@ -214,121 +225,147 @@ function Sidebar({ activeTab, onTabChange, patient }) {
   ];
 
   return (
-    <aside className="pp-sidebar">
-      <div className="pp-sidebar-user">
-        <div className="pp-sidebar-avatar">{initials}</div>
-        <p className="pp-sidebar-name">{patient?.firstName} {patient?.lastName}</p>
-        <p className="pp-sidebar-email">{patient?.email}</p>
-      </div>
+    <>
+      {isOpen && <div className="pp-sidebar-overlay" onClick={onClose} aria-hidden="true" />}
+      <aside className={`pp-sidebar${isOpen ? ' pp-sidebar--open' : ''}`}>
+        <button className="pp-sidebar-close" onClick={onClose} aria-label="Close menu">✕</button>
+        <div className="pp-sidebar-user">
+          <div className="pp-sidebar-avatar">{initials}</div>
+          <p className="pp-sidebar-name">{patient?.firstName} {patient?.lastName}</p>
+          <p className="pp-sidebar-email">{patient?.email}</p>
+        </div>
 
-      <nav className="pp-sidebar-nav" aria-label="Patient portal sections">
-        {navItems.map(item => (
+        <nav className="pp-sidebar-nav" aria-label="Patient portal sections">
+          {navItems.map(item => (
+            <button
+              key={item.key}
+              className={`pp-sidebar-item${activeTab === item.key ? ' pp-sidebar-item--active' : ''}`}
+              onClick={() => { onTabChange(item.key); onClose(); }}
+            >
+              <span className="pp-sidebar-icon">{item.icon}</span>
+              {item.label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="pp-sidebar-footer">
           <button
-            key={item.key}
-            className={`pp-sidebar-item${activeTab === item.key ? ' pp-sidebar-item--active' : ''}`}
-            onClick={() => onTabChange(item.key)}
+            className="pp-sidebar-signout"
+            onClick={() => {
+              localStorage.removeItem('token');
+              localStorage.removeItem('user');
+              window.location.href = '/login';
+            }}
           >
-            <span className="pp-sidebar-icon">{item.icon}</span>
-            {item.label}
+            <IconLogout />
+            Sign Out
           </button>
-        ))}
-      </nav>
-
-      <div className="pp-sidebar-footer">
-        <button
-          className="pp-sidebar-signout"
-          onClick={() => {
-            localStorage.removeItem('token');
-            localStorage.removeItem('user');
-            window.location.href = '/login';
-          }}
-        >
-          <IconLogout />
-          Sign Out
-        </button>
-      </div>
-    </aside>
+        </div>
+      </aside>
+    </>
   );
 }
 
-// ── Payment Step ──
-function PaymentStep({ appointmentId, consultationFee, clientSecret, token, onSuccess, onBack }) {
+// ── Payment Form (must be inside Elements provider) ──
+function PaymentForm({ appointment, onSuccess, onClose }) {
   const stripe = useStripe();
   const elements = useElements();
-  const [paying, setPaying] = useState(false);
-  const [error, setError] = useState('');
+  const [processing, setProcessing] = useState(false);
+  const [payError, setPayError] = useState('');
+  const [paid, setPaid] = useState(false);
+  const token = localStorage.getItem('token');
 
-  async function handlePay() {
+  async function handlePay(e) {
+    e.preventDefault();
     if (!stripe || !elements) return;
-    setPaying(true);
-    setError('');
-
+    setProcessing(true);
+    setPayError('');
     try {
-      // Send card details to Stripe
-      const result = await stripe.confirmCardPayment(
-        clientSecret,
-        { payment_method: { card: elements.getElement(CardElement) } }
-      );
-
-      if (result.error) {
-        setError(result.error.message);
-        return;
-      }
-
-      // Tell your backend the payment worked
-      const res = await fetch('/api/payments/confirm-payment', {
+      const res = await fetch('/api/payments/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          appointment_id: appointmentId,
-          payment_intent_id: result.paymentIntent.id,
-        }),
+        body: JSON.stringify({ appointment_id: appointment.id }),
       });
-
       const data = await res.json();
-      if (!res.ok) { setError(data.message || 'Payment confirmation failed.'); return; }
+      if (!res.ok) { setPayError(data.message || 'Payment setup failed.'); setProcessing(false); return; }
 
-      onSuccess();
+      const { error: stripeError, paymentIntent } = await stripe.confirmCardPayment(data.clientSecret, {
+        payment_method: { card: elements.getElement(CardElement) },
+      });
+      if (stripeError) { setPayError(stripeError.message); setProcessing(false); return; }
 
+      await fetch('/api/payments/confirm-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ appointment_id: appointment.id, payment_intent_id: paymentIntent.id }),
+      });
+      setPaid(true);
+      setTimeout(() => { onSuccess(); onClose(); }, 2000);
     } catch {
-      setError('Something went wrong. Please try again.');
-    } finally {
-      setPaying(false);
+      setPayError('Payment failed. Please try again.');
+      setProcessing(false);
     }
   }
 
+  if (paid) {
+    return (
+      <div className="pp-payment-done">
+        <svg viewBox="0 0 24 24" width="52" height="52" fill="none" stroke="#10b981" strokeWidth="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <p>Payment successful! Your appointment is confirmed.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="pp-confirm-section">
-      <button className="pp-modal-back" onClick={onBack}>← Back</button>
-
-      <div className="pp-confirm-summary">
-        <div className="pp-confirm-row">
-          <span className="pp-confirm-label">Amount due</span>
-          <span className="pp-confirm-value" style={{ fontWeight: 700, color: '#16a34a' }}>
-            ${(consultationFee / 100).toFixed(2)} AUD
-          </span>
+    <div className="pp-payment-section">
+      <div className="pp-payment-summary">
+        <div className="pp-payment-row">
+          <span>Doctor</span><span>{appointment.doctor}</span>
+        </div>
+        <div className="pp-payment-row">
+          <span>Date &amp; Time</span>
+          <span>{formatDate(appointment.date)} · {formatTime12(appointment.time)}</span>
+        </div>
+        <div className="pp-payment-row pp-payment-row--total">
+          <span>Amount due</span>
+          <span className="pp-payment-value">${appointment.fee} AUD</span>
         </div>
       </div>
-
-      <div className="pp-field" style={{ marginTop: '1rem' }}>
-        <label>Card details</label>
-        <div className="pp-card-input">
-          <CardElement options={{
-            hidePostalCode: true,
-            style: { base: { fontSize: '16px', fontFamily: 'inherit' } }
-          }} />
+      <form onSubmit={handlePay}>
+        <label className="pp-payment-card-label">Card Details</label>
+        <div className="pp-card-element-wrap">
+          <CardElement options={{ style: { base: { fontSize: '15px', color: '#1a1a2e', '::placeholder': { color: '#9ca3af' } } } }} />
         </div>
-        <p className="pp-card-hint">
-          🔒 Test mode — use card number <strong>4242 4242 4242 4242</strong>, any future expiry, any CVC
-        </p>
+        {payError && <p className="pp-error-banner">{payError}</p>}
+        <div className="pp-payment-actions">
+          <button type="button" className="pp-btn-outline" onClick={onClose} disabled={processing}>Cancel</button>
+          <button type="submit" className="pp-btn-primary" disabled={processing || !stripe}>
+            {processing ? <span className="pp-spinner" aria-hidden="true" /> : null}
+            {processing ? 'Processing…' : `Pay $${appointment.fee}`}
+          </button>
+        </div>
+      </form>
+      <p className="pp-payment-secure">🔒 Secured by Stripe — your card details are never stored on our servers.</p>
+    </div>
+  );
+}
+
+// ── Payment Modal ──
+function PaymentModal({ appointment, onSuccess, onClose }) {
+  return (
+    <div className="pp-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="pp-modal" role="dialog" aria-modal="true">
+        <div className="pp-modal-header">
+          <h2 className="pp-modal-title">Complete Payment</h2>
+          <button className="pp-modal-close" onClick={onClose} aria-label="Close"><IconClose /></button>
+        </div>
+        <Elements stripe={stripePromise}>
+          <PaymentForm appointment={appointment} onSuccess={onSuccess} onClose={onClose} />
+        </Elements>
       </div>
-
-      {error && <p className="pp-error-banner">{error}</p>}
-
-      <button className="pp-btn-primary pp-confirm-btn" onClick={handlePay} disabled={paying || !stripe}>
-        {paying ? <span className="pp-spinner" aria-hidden="true" /> : null}
-        {paying ? 'Processing payment…' : `Pay $${(consultationFee / 100).toFixed(2)} AUD`}
-      </button>
     </div>
   );
 }
@@ -336,9 +373,6 @@ function PaymentStep({ appointmentId, consultationFee, clientSecret, token, onSu
 // ── Booking Modal ──
 function BookingModal({ onClose, onBooked, preselectedProviderId = null, rescheduleAppointmentId = null }) {
   const [step, setStep] = useState('providers');
-  const [appointmentId, setAppointmentId] = useState(null);
-  const [consultationFee, setConsultationFee] = useState(null);
-  const [clientSecret, setClientSecret] = useState('');
   const [providers, setProviders] = useState([]);
   const [selectedProvider, setSelectedProvider] = useState(null);
   const [slots, setSlots] = useState([]);
@@ -418,12 +452,14 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
           availability_id: selectedSlot.availability_id,
           reason,
           notes: '',
+          fee: rate,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
         const msg = data.message || 'Booking failed. Please try again.';
         setError(msg);
+        // Slot was grabbed by someone else — go back and show fresh availability
         if (res.status === 400 && data.message?.toLowerCase().includes('already booked')) {
           setSelectedSlot(null);
           setStep('slots');
@@ -679,18 +715,6 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
             </button>
           </div>
         )}
-        {step === 'payment' && clientSecret && (
-          <Elements stripe={stripePromise} options={{ clientSecret }}>
-            <PaymentStep
-              clientSecret={clientSecret}
-              appointmentId={appointmentId}
-              consultationFee={consultationFee}
-              token={token}
-              onSuccess={() => { onBooked(); onClose(); }}
-              onBack={() => setStep('confirm')}
-            />
-          </Elements>
-        )}
       </div>
     </div>
   );
@@ -838,6 +862,7 @@ function OverviewTab({ patient, appointments, onBook, onViewAppointments }) {
 function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }) {
   const today = new Date().toISOString().split('T')[0];
   const [cancelling, setCancelling] = useState(null);
+  const [payingAppt, setPayingAppt] = useState(null);
 
   async function cancelAppointment(id) {
     setCancelling(id);
@@ -908,7 +933,10 @@ function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }
                     <td>{a.doctor}</td>
                     <td>{formatDate(a.date)} · {formatTime12(a.time)}</td>
                     <td>{a.reason || '—'}</td>
-                    <td>{a.fee ? `$${a.fee}` : '—'}</td>
+                    <td>
+                      {a.fee ? `$${a.fee}` : '—'}
+                      {a.paymentStatus === 'Paid' && <span className="pp-paid-badge">Paid</span>}
+                    </td>
                     <td><span className={`pp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
                     <td className="pp-table-actions">
                       <button
@@ -932,6 +960,16 @@ function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }
           </div>
         )}
       </div>
+
+      {payingAppt && (
+        <PaymentModal
+          appointment={payingAppt}
+          onSuccess={() => setAppointments(prev => prev.map(a =>
+            a.id === payingAppt.id ? { ...a, paymentStatus: 'Paid' } : a
+          ))}
+          onClose={() => setPayingAppt(null)}
+        />
+      )}
 
       {past.length > 0 && (
         <div className="pp-card">
@@ -1006,35 +1044,6 @@ function HealthProfileTab({ patient, onSave }) {
 
   async function handleSave(e) {
     e.preventDefault();
-    // Validate inputs
-    if (!form.firstName.trim() || !form.lastName.trim()) {
-      setError('First name and last name are required!');
-      return;
-    }
-
-    if (form.phone && !/^\d{10}$/.test(form.phone.replace(/\s/g, ''))) {
-      setError('Please enter a valid 10-digit phone number');
-      return;
-    }
-
-    if (form.dob) {
-      const dob = new Date(form.dob);
-      const today = new Date();
-      if (dob >= today) {
-        setError('Date of birth must be in the past');
-        return;
-      }
-    }
-
-    if (!form.address.trim()) {
-      setError('Address is required');
-      return;
-    }
-
-    if (!form.emergencyContact.trim()) {
-      setError('Emergency contact is required');
-      return;
-    }
     setSaving(true);
     setError('');
     try {
@@ -1056,11 +1065,6 @@ function HealthProfileTab({ patient, onSave }) {
       if (!res.ok) { setError(data.message || 'Failed to save. Please try again.'); return; }
       setSaved(true);
       onSave?.({ ...patient, ...form });
-      setTimeout(() => {
-        onSave?.({ ...patient, ...form });
-        window.history.replaceState({}, '', '/patient-portal');
-        window.dispatchEvent(new Event('navigateToOverview'));
-      }, 1500);
     } catch {
       setError('Could not connect. Please try again.');
     } finally {
@@ -1289,6 +1293,7 @@ function PatientPortal() {
   const [notifications, setNotifications] = useState([]);
   const [showBooking, setShowBooking] = useState(false);
   const [bookProviderId, setBookProviderId] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rescheduleId, setRescheduleId] = useState(null);
 
   useEffect(() => {
@@ -1340,16 +1345,17 @@ function PatientPortal() {
       .then(data => {
         if (!data?.appointments) return;
         setAppointments(data.appointments.map(a => ({
-          id:           a.appointment_id,
+          id:             a.appointment_id,
           providerId:   a.provider_id,
           doctor:       `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
           date:         a.appointment_datetime.split('T')[0],
           time:         a.appointment_datetime.split('T')[1]?.slice(0, 5) ?? '',
           reason:       a.reason ?? '',
           notes:        a.notes ?? '',
-          prescription: a.prescription ?? '',
-          status:       a.status.toLowerCase(),
-          fee:          a.consultation_fee ? `${a.consultation_fee / 100}` : null,
+          prescription:   a.prescription ?? '',
+          status:         a.status.toLowerCase(),
+          fee:            a.consultation_fee ? `${a.consultation_fee / 100}` : null,
+          paymentStatus:  a.payment_status ?? 'Unpaid',
         })));
       })
       .catch(() => {});
@@ -1366,10 +1372,6 @@ function PatientPortal() {
         })));
       })
       .catch(() => {});
-
-    // Navigate to overview after profile save
-    window.addEventListener('navigateToOverview', () => setActiveTab('overview'));
-    return () => window.removeEventListener('navigateToOverview', () => setActiveTab('overview'));
   }, []);
 
   function markAllRead() {
@@ -1387,28 +1389,32 @@ function PatientPortal() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data?.appointments) return;
-        setAppointments(data.appointments.map(a => ({
-          id:           a.appointment_id,
-          providerId:   a.provider_id,
-          doctor:       `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
-          date:         a.appointment_datetime.split('T')[0],
-          time:         a.appointment_datetime.split('T')[1]?.slice(0, 5) ?? '',
-          reason:       a.reason ?? '',
-          notes:        a.notes ?? '',
-          prescription: a.prescription ?? '',
-          status:       a.status.toLowerCase(),
-          fee:          a.consultation_fee ? `${a.consultation_fee / 100}` : null,
-        })));
+        setAppointments(data.appointments.map(a => {
+          const dt = new Date(a.appointment_datetime);
+          return {
+            id:           a.appointment_id,
+            providerId:   a.provider_id,
+            doctor:       `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
+            date:          `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`,
+            time:          `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`,
+            reason:       a.reason ?? '',
+            notes:        a.notes ?? '',
+            prescription: a.prescription ?? '',
+            status:       a.status.toLowerCase(),
+            fee:          a.consultation_fee ? `${a.consultation_fee / 100}` : null,
+            paymentStatus: a.payment_status ?? 'Unpaid',
+          };
+        }));
       })
       .catch(() => {});
   }
 
   return (
     <div className="pp-page">
-      <PatientNav patient={patient} notifications={notifications} onMarkAllRead={markAllRead} />
+      <PatientNav patient={patient} notifications={notifications} onMarkAllRead={markAllRead} onMenuClick={() => setSidebarOpen(true)} />
 
       <div className="pp-body">
-        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} patient={patient} />
+        <Sidebar activeTab={activeTab} onTabChange={setActiveTab} patient={patient} isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
         <main className="pp-main">
           {activeTab === 'overview' && (
