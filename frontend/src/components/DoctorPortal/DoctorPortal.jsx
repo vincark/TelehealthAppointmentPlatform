@@ -472,6 +472,12 @@ function ProfileTab({ doctor, onSave }) {
             <input id="dp-degree" name="degree" type="text" value={form.degree} onChange={handleChange}
               placeholder="e.g. MBBS, MD, FRACGP" />
           </div>
+          <div className="dp-field">
+            <label htmlFor="dp-baseFee">Consultation Fee (AUD) <span aria-hidden="true">*</span></label>
+            <input id="dp-baseFee" name="baseFee" type="number" min="0" step="5"
+              value={form.baseFee} onChange={handleChange}
+              placeholder="e.g. 75" />
+          </div>
         </div>
       </div>
 
@@ -708,9 +714,17 @@ function AppointmentsTab({ appointments, setAppointments }) {
                   <td><span className={`dp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
                   <td className="dp-table-actions">
                     {a.status === 'confirmed' && (
-                      <button className="dp-btn-notes" onClick={() => setConsultAppt(a)}>
-                        <IconClipboard /> Add Notes
-                      </button>
+                      <>
+                        <button
+                          className="dp-btn-video"
+                          onClick={() => window.open(`https://meet.jit.si/telehealth-appt-${a.id}`, '_blank')}
+                        >
+                          <IconVideo /> Video Call
+                        </button>
+                        <button className="dp-btn-notes" onClick={() => setConsultAppt(a)}>
+                          <IconClipboard /> Add Notes
+                        </button>
+                      </>
                     )}
                     {a.status === 'completed' && (
                       <button className="dp-btn-notes" onClick={() => setConsultAppt(a)}>

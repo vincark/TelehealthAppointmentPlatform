@@ -5,6 +5,25 @@ import './PatientPortal.css';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
+// ── Sydney timezone helpers ──
+function sydParts(isoStr) {
+  if (!isoStr) return null;
+  const d = new Date(isoStr); if (isNaN(d)) return null;
+  const p = new Intl.DateTimeFormat('en-AU', {
+    timeZone: 'Australia/Sydney',
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).formatToParts(d);
+  return Object.fromEntries(p.map(x => [x.type, x.value]));
+}
+function sydHour(isoStr) {
+  const p = sydParts(isoStr); return p ? parseInt(p.hour, 10) : 0;
+}
+function sydDow(isoStr) {
+  const p = sydParts(isoStr); if (!p) return 0;
+  return new Date(Date.UTC(parseInt(p.year), parseInt(p.month) - 1, parseInt(p.day), 12)).getUTCDay();
+}
+
 function formatRelativeTime(dateStr) {
   const mins = Math.floor((Date.now() - new Date(dateStr)) / 60000);
   if (mins < 1) return 'just now';
@@ -555,6 +574,15 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
     }
   }
 
+  function getSlotRate(slot) {
+    const baseFee = parseFloat(selectedProvider?.base_fee ?? 75);
+    const day = sydDow(slot.slot_start);
+    const h   = sydHour(slot.slot_start);
+    if (day === 0 || day === 6) return { rate: Math.round(baseFee * 1.2), type: 'after' };
+    if (h >= 8 && h < 18)      return { rate: baseFee, type: 'business' };
+    return { rate: Math.round(baseFee * 1.2), type: 'after' };
+  }
+
   // Timetable helpers
   function slotLocalDate(slot) {
     const d = new Date(slot.slot_start);
@@ -649,7 +677,10 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
                 <div className="pp-slot-legend-wrap">
                   <div className="pp-slot-legend">
                     <span className="pp-legend-item pp-legend-business">
-                      <span className="pp-legend-dot" /> Consultation Fee: $75
+                      <span className="pp-legend-dot" /> Business Hours (Mon–Fri 8am–6pm) ${parseFloat(selectedProvider?.base_fee ?? 75)}
+                    </span>
+                    <span className="pp-legend-item pp-legend-after">
+                      <span className="pp-legend-dot" /> After Hours &amp; Weekends ${Math.round(parseFloat(selectedProvider?.base_fee ?? 75) * 1.2)}
                     </span>
                   </div>
                   <span className="pp-bulk-bill">✔ Bulk Bill Accepted</span>
@@ -663,12 +694,13 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
                     </div>
                     <div className="pp-timetable-grid">
                       {morningSlots.map(s => {
+                        const { rate, type } = getSlotRate(s);
                         return (
                           <button key={s.availability_id}
-                            className="pp-time-slot pp-time-slot--business"
+                            className={`pp-time-slot pp-time-slot--${type}`}
                             onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
                             <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
-                            <span className="pp-slot-rate">$75</span>
+                            <span className="pp-slot-rate">${rate}</span>
                           </button>
                         );
                       })}
@@ -684,16 +716,17 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
                     </div>
                     <div className="pp-timetable-grid">
                       {daytimeSlots.map(s => {
+                        const { rate, type } = getSlotRate(s);
                         return (
                           <button key={s.availability_id}
-                            className="pp-time-slot pp-time-slot--business"
+                            className={`pp-time-slot pp-time-slot--${type}`}
                             onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
                             <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
-                            <span className="pp-slot-rate">$75</span>
+                            <span className="pp-slot-rate">${rate}</span>
                           </button>
                         );
                       })}
-                    </div>
+                                          </div>
                   </div>
                 )}
 
@@ -705,12 +738,13 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
                     </div>
                     <div className="pp-timetable-grid">
                       {eveningSlots.map(s => {
+                        const { rate, type } = getSlotRate(s);
                         return (
                           <button key={s.availability_id}
-                            className="pp-time-slot pp-time-slot--business"
+                            className={`pp-time-slot pp-time-slot--${type}`}
                             onClick={() => { setSelectedSlot(s); setStep('confirm'); }}>
                             <span className="pp-slot-time-label">{formatTime12(new Date(s.slot_start).toTimeString().slice(0, 5))}</span>
-                            <span className="pp-slot-rate">$75</span>
+                            <span className="pp-slot-rate">${rate}</span>
                           </button>
                         );
                       })}
@@ -747,11 +781,12 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
                 </span>
               </div>
               {selectedSlot && (() => {
+                const { rate, type } = getSlotRate(selectedSlot);
                 return (
                   <div className="pp-confirm-row">
                     <span className="pp-confirm-label">Consultation Fee</span>
-                    <span className={`pp-confirm-value pp-confirm-fee pp-confirm-fee--business`}>
-                      $75 <span className="pp-confirm-bulk">· Bulk Bill Accepted</span>
+                    <span className={`pp-confirm-value pp-confirm-fee pp-confirm-fee--${type}`}>
+                      ${rate} <span className="pp-confirm-bulk">· Bulk Bill Accepted</span>
                     </span>
                   </div>
                 );
@@ -1004,6 +1039,14 @@ function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }
                           onClick={() => setPayingAppt(a)}
                         >
                           💳 Pay Now
+                        </button>
+                      )}
+                      {a.status === 'confirmed' && a.paymentStatus === 'Paid' && (
+                        <button
+                          className="pp-btn-video"
+                          onClick={() => window.open(`https://meet.jit.si/telehealth-appt-${a.id}`, '_blank')}
+                        >
+                          🎥 Join Call
                         </button>
                       )}
                       <button
