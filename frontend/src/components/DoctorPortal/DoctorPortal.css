@@ -769,6 +769,11 @@
 .dp-pill--yellow { background: #FEF9C3; color: #92400E; }
 .dp-pill--green  { background: var(--color-primary-soft); color: var(--color-primary-dark); }
 .dp-pill--grey   { background: var(--color-bg-alt); color: var(--color-text-muted); }
+.dp-pill--amber  { background: #FEF3C7; color: #92400E; }
+
+.dp-badge-pill--amber { background: #F59E0B; color: #fff; }
+
+.dp-reschedule-new-time { color: #D97706; font-weight: 600; }
 
 /* Empty state */
 .dp-empty-state {

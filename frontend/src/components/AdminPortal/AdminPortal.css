@@ -87,6 +87,22 @@
   justify-content: center;
   flex-shrink: 0;
 }
+.ad-nav-help {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary-dark);
+  border: 1.5px solid var(--color-primary);
+  border-radius: var(--radius-pill);
+  padding: 6px 14px;
+  background: var(--color-primary-soft);
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.ad-nav-help:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
 .ad-nav-logout {
   display: flex;
   align-items: center;

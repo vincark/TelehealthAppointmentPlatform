@@ -24,6 +24,14 @@ function sydDow(isoStr) {
   return new Date(Date.UTC(parseInt(p.year), parseInt(p.month) - 1, parseInt(p.day), 12)).getUTCDay();
 }
 
+function getRateType(isoStr) {
+  if (!isoStr) return null;
+  const h = sydHour(isoStr);
+  const dow = sydDow(isoStr);
+  if (dow === 0 || dow === 6) return 'after';
+  return (h >= 8 && h < 18) ? 'business' : 'after';
+}
+
 function formatRelativeTime(dateStr) {
   const mins = Math.floor((Date.now() - new Date(dateStr)) / 60000);
   if (mins < 1) return 'just now';
@@ -457,7 +465,7 @@ function PaymentStep({ appointmentId, consultationFee, clientSecret, token, onSu
 }
 
 // ── Booking Modal ──
-function BookingModal({ onClose, onBooked, preselectedProviderId = null, rescheduleAppointmentId = null }) {
+function BookingModal({ onClose, onBooked, preselectedProviderId = null, rescheduleAppointmentId = null, originalTime = null }) {
   const [step, setStep] = useState('providers');
   const [appointmentId, setAppointmentId] = useState(null);
   const [consultationFee, setConsultationFee] = useState(null);
@@ -591,13 +599,23 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
   function formatDateHeader(dateStr) {
     return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
   }
+
+  const lockedRateType = rescheduleAppointmentId ? getRateType(originalTime) : null;
+  const slotRateType = s => {
+    const h = sydHour(s.slot_start);
+    const dow = sydDow(s.slot_start);
+    if (dow === 0 || dow === 6) return 'after';
+    return (h >= 8 && h < 18) ? 'business' : 'after';
+  };
+
   const availableDates = [...new Set(slots.map(slotLocalDate))].sort();
-  const currentDate   = selectedDate || availableDates[0] || null;
-  const dateIdx       = currentDate ? availableDates.indexOf(currentDate) : 0;
-  const slotsOnDate   = currentDate ? slots.filter(s => slotLocalDate(s) === currentDate) : [];
-  const morningSlots  = slotsOnDate.filter(s => new Date(s.slot_start).getHours() < 8);
-  const daytimeSlots  = slotsOnDate.filter(s => { const h = new Date(s.slot_start).getHours(); return h >= 8 && h < 18; });
-  const eveningSlots  = slotsOnDate.filter(s => new Date(s.slot_start).getHours() >= 18);
+  const currentDate    = selectedDate || availableDates[0] || null;
+  const dateIdx        = currentDate ? availableDates.indexOf(currentDate) : 0;
+  const allSlotsOnDate = currentDate ? slots.filter(s => slotLocalDate(s) === currentDate) : [];
+  const slotsOnDate    = lockedRateType ? allSlotsOnDate.filter(s => slotRateType(s) === lockedRateType) : allSlotsOnDate;
+  const morningSlots   = slotsOnDate.filter(s => sydHour(s.slot_start) < 8);
+  const daytimeSlots   = slotsOnDate.filter(s => { const h = sydHour(s.slot_start); return h >= 8 && h < 18; });
+  const eveningSlots   = slotsOnDate.filter(s => sydHour(s.slot_start) >= 18);
 
   const modalTitle = step === 'providers'
     ? 'Choose a Provider'
@@ -655,6 +673,13 @@ function BookingModal({ onClose, onBooked, preselectedProviderId = null, resched
               <p className="pp-empty-state">No available slots for this provider right now. Ask them to set their availability in their portal.</p>
             ) : (
               <>
+                {lockedRateType && (
+                  <div className="pp-reschedule-notice">
+                    <strong>Rate-locked reschedule:</strong> You originally booked a{' '}
+                    <strong>{lockedRateType === 'business' ? 'business-hours' : 'after-hours'}</strong> slot.
+                    Only {lockedRateType === 'business' ? 'business-hours (Mon–Fri 8am–6pm)' : 'after-hours / weekend'} slots are shown to keep your rate the same.
+                  </div>
+                )}
                 <p className="pp-slot-total">{slots.length} slot{slots.length !== 1 ? 's' : ''} available across {availableDates.length} day{availableDates.length !== 1 ? 's' : ''}</p>
                 {/* Date navigator */}
                 <div className="pp-date-nav">
@@ -953,7 +978,7 @@ function OverviewTab({ patient, appointments, onBook, onViewAppointments }) {
 }
 
 // ── Appointments tab ──
-function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }) {
+function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }) { // onReschedule(id, providerId, originalTime)
   const today = new Date().toISOString().split('T')[0];
   const [cancelling, setCancelling] = useState(null);
   const [payingAppt, setPayingAppt] = useState(null);
@@ -980,11 +1005,21 @@ function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }
   const past = appointments.filter(a => a.date < today || a.status === 'cancelled' || a.status === 'completed');
 
   const statusClass = {
-    confirmed:   'pp-pill--green',
-    pending:     'pp-pill--yellow',
-    completed:   'pp-pill--teal',
-    cancelled:   'pp-pill--grey',
-    rescheduled: 'pp-pill--blue',
+    confirmed:            'pp-pill--green',
+    pending:              'pp-pill--yellow',
+    completed:            'pp-pill--teal',
+    cancelled:            'pp-pill--grey',
+    rescheduled:          'pp-pill--blue',
+    reschedule_requested: 'pp-pill--amber',
+  };
+
+  const statusLabel = {
+    confirmed:            'Confirmed',
+    pending:              'Pending',
+    completed:            'Completed',
+    cancelled:            'Cancelled',
+    rescheduled:          'Rescheduled',
+    reschedule_requested: 'Pending Reschedule',
   };
 
   return (
@@ -1031,7 +1066,15 @@ function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }
                       {a.fee ? `$${a.fee}` : '—'}
                       {a.paymentStatus === 'Paid' && <span className="pp-paid-badge">Paid</span>}
                     </td>
-                    <td><span className={`pp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
+                    <td>
+                      <span className={`pp-status-pill ${statusClass[a.status] ?? ''}`}>{statusLabel[a.status] ?? a.status}</span>
+                      {a.status === 'reschedule_requested' && a.requestedSlotStart && (
+                        <p className="pp-reschedule-requested-time">
+                          → {new Date(a.requestedSlotStart).toLocaleDateString('en-AU', { day: 'numeric', month: 'short' })}
+                          {' · '}{formatTime12(new Date(a.requestedSlotStart).toTimeString().slice(0, 5))}
+                        </p>
+                      )}
+                    </td>
                     <td className="pp-table-actions">
                       {a.status === 'confirmed' && a.paymentStatus !== 'Paid' && (
                         <button
@@ -1051,9 +1094,10 @@ function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }
                       )}
                       <button
                         className="pp-btn-reschedule"
-                        onClick={() => onReschedule(a.id, a.providerId)}
+                        onClick={() => onReschedule(a.id, a.providerId, `${a.date}T${a.time}`)}
+                        disabled={a.status === 'reschedule_requested'}
                       >
-                        Reschedule
+                        {a.status === 'reschedule_requested' ? 'Reschedule Pending…' : 'Reschedule'}
                       </button>
                       <button
                         className="pp-btn-cancel"
@@ -1102,7 +1146,7 @@ function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }
                     <td>{formatDate(a.date)} · {formatTime12(a.time)}</td>
                     <td>{a.reason || '—'}</td>
                     <td>{a.fee ? `$${a.fee}` : '—'}</td>
-                    <td><span className={`pp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
+                    <td><span className={`pp-status-pill ${statusClass[a.status] ?? ''}`}>{statusLabel[a.status] ?? a.status}</span></td>
                   </tr>
                 ))}
               </tbody>
@@ -1490,6 +1534,7 @@ function PatientPortal() {
   const [bookProviderId, setBookProviderId] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [rescheduleId, setRescheduleId] = useState(null);
+  const [rescheduleOriginalTime, setRescheduleOriginalTime] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -1543,17 +1588,18 @@ function PatientPortal() {
       .then(data => {
         if (!data?.appointments) return;
         setAppointments(data.appointments.map(a => ({
-          id:             a.appointment_id,
-          providerId:   a.provider_id,
-          doctor:       `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
+          id:                 a.appointment_id,
+          providerId:         a.provider_id,
+          doctor:             `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
           date: (() => { const dt = new Date(a.appointment_datetime); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; })(),
           time: (() => { const dt = new Date(a.appointment_datetime); return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`; })(),
-          reason:       a.reason ?? '',
-          notes:        a.notes ?? '',
-          prescription:   a.prescription ?? '',
-          status:         a.status.toLowerCase(),
-          fee:            a.consultation_fee ? `${a.consultation_fee}` : null,
-          paymentStatus:  a.payment_status ?? 'Unpaid',
+          reason:             a.reason ?? '',
+          notes:              a.notes ?? '',
+          prescription:       a.prescription ?? '',
+          status:             a.status.toLowerCase(),
+          fee:                a.consultation_fee ? `${a.consultation_fee}` : null,
+          paymentStatus:      a.payment_status ?? 'Unpaid',
+          requestedSlotStart: a.requested_slot_start ?? null,
         })));
       })
       .catch(() => {});
@@ -1590,17 +1636,18 @@ function PatientPortal() {
         setAppointments(data.appointments.map(a => {
           const dt = new Date(a.appointment_datetime);
           return {
-            id:           a.appointment_id,
-            providerId:   a.provider_id,
-            doctor:       `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
-            date:          `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`,
-            time:          `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`,
-            reason:       a.reason ?? '',
-            notes:        a.notes ?? '',
-            prescription: a.prescription ?? '',
-            status:       a.status.toLowerCase(),
-            fee:          a.consultation_fee ? `${a.consultation_fee}` : null,
-            paymentStatus: a.payment_status ?? 'Unpaid',
+            id:                 a.appointment_id,
+            providerId:         a.provider_id,
+            doctor:             `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
+            date:               `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`,
+            time:               `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`,
+            reason:             a.reason ?? '',
+            notes:              a.notes ?? '',
+            prescription:       a.prescription ?? '',
+            status:             a.status.toLowerCase(),
+            fee:                a.consultation_fee ? `${a.consultation_fee}` : null,
+            paymentStatus:      a.payment_status ?? 'Unpaid',
+            requestedSlotStart: a.requested_slot_start ?? null,
           };
         }));
       })
@@ -1623,9 +1670,10 @@ function PatientPortal() {
               appointments={appointments}
               setAppointments={setAppointments}
               onBook={() => setShowBooking(true)}
-              onReschedule={(apptId, providerId) => {
+              onReschedule={(apptId, providerId, originalTime) => {
                 setRescheduleId(apptId);
                 setBookProviderId(providerId);
+                setRescheduleOriginalTime(originalTime ?? null);
                 setShowBooking(true);
               }}
             />
@@ -1639,10 +1687,11 @@ function PatientPortal() {
 
       {showBooking && (
         <BookingModal
-          onClose={() => { setShowBooking(false); setBookProviderId(null); setRescheduleId(null); }}
+          onClose={() => { setShowBooking(false); setBookProviderId(null); setRescheduleId(null); setRescheduleOriginalTime(null); }}
           onBooked={handleBooked}
           preselectedProviderId={bookProviderId}
           rescheduleAppointmentId={rescheduleId}
+          originalTime={rescheduleOriginalTime}
         />
       )}
     </div>

@@ -68,6 +68,7 @@ function AdminNav({ admin }) {
           <span className="ad-nav-welcome">
             {admin?.firstName} {admin?.lastName}
           </span>
+          <a href="/help?portal=admin" className="ad-nav-help" target="_blank" rel="noreferrer">Help</a>
           <div className="ad-nav-avatar" aria-label="Admin initials">{initials}</div>
           <button className="ad-nav-logout" onClick={logout}>
             <IconLogout /> Logout

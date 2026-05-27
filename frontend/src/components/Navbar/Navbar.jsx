@@ -47,7 +47,8 @@ function Navbar() {
         <nav className="navbar-links" aria-label="Primary">
           <a href="/" className={`nav-link${pathname === '/' ? ' nav-link-active' : ''}`}>Home</a>
           <a href="/providers" className={`nav-link${pathname === '/providers' ? ' nav-link-active' : ''}`}>Providers</a>
-         
+          <a href="/help" className={`nav-link${pathname === '/help' ? ' nav-link-active' : ''}`}>Help</a>
+
         </nav>
 
         {/* === RIGHT: Theme toggle + Auth buttons === */}

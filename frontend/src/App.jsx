@@ -13,6 +13,7 @@ import PatientPortal from './components/PatientPortal/PatientPortal';
 import Providers from './components/Providers/Providers';
 import AdminPortal from './components/AdminPortal/AdminPortal';
 import GoogleCallback from './components/GoogleCallback/GoogleCallback';
+import Help from './components/Help/Help';
 
 const FULL_SCREEN_ROUTES = ['/register', '/login', '/doctor-portal', '/patient-portal', '/admin-portal', '/auth/google/callback'];
 
@@ -29,7 +30,9 @@ function HomePage() {
 
 function App() {
   const location = useLocation();
-  const isFullScreen = FULL_SCREEN_ROUTES.includes(location.pathname);
+  const portalParam = new URLSearchParams(location.search).get('portal');
+  const isPortalHelp = location.pathname === '/help' && ['doctor', 'admin'].includes(portalParam);
+  const isFullScreen = FULL_SCREEN_ROUTES.includes(location.pathname) || isPortalHelp;
 
   return (
     <div>
@@ -44,6 +47,7 @@ function App() {
           <Route path="/providers" element={<Providers />} />
           <Route path="/admin-portal" element={<AdminPortal />} />
           <Route path="/auth/google/callback" element={<GoogleCallback />} />
+          <Route path="/help" element={<Help />} />
         </Routes>
       </main>
       {!isFullScreen && <Footer />}

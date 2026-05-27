@@ -172,6 +172,7 @@ function DoctorNav({ doctor, notifications, onMarkAllRead }) {
         </a>
         <div className="dp-nav-links">
           <a href="/" className="dp-nav-link">Home</a>
+          <a href="/help?portal=doctor" className="dp-nav-link" target="_blank" rel="noreferrer">Help</a>
         </div>
         <div className="dp-nav-actions">
           <span className="dp-nav-welcome">Welcome, Dr. {doctor?.lastName ?? '…'}</span>
@@ -545,6 +546,33 @@ function AppointmentsTab({ appointments, setAppointments }) {
     }).catch(() => {});
   }
 
+  function handleRescheduleDecision(id, decision) {
+    const token = localStorage.getItem('token');
+    fetch(`/api/appointments/reschedule/${id}/${decision}`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(() => {
+        setAppointments(prev => prev.map(a =>
+          a.id === id
+            ? {
+                ...a,
+                status: 'confirmed',
+                requestedSlotStart: null,
+                ...(decision === 'approve' && a.requestedSlotStart
+                  ? {
+                      date: a.requestedSlotStart.split('T')[0],
+                      time: a.requestedSlotStart.split('T')[1]?.slice(0, 5) ?? '',
+                    }
+                  : {}),
+              }
+            : a
+        ));
+      })
+      .catch(() => {});
+  }
+
   function toggleDay(day) {
     setAvailability(prev => ({
       ...prev,
@@ -621,17 +649,30 @@ function AppointmentsTab({ appointments, setAppointments }) {
     pending:     appointments.filter(a => a.status === 'pending').length,
     completed:   appointments.filter(a => a.status === 'completed').length,
     cancelled:   appointments.filter(a => a.status === 'cancelled' || a.status === 'rescheduled').length,
+    reschedule:  appointments.filter(a => a.status === 'reschedule_requested').length,
   };
 
   const pending = appointments.filter(a => a.status === 'pending');
+  const rescheduleRequests = appointments.filter(a => a.status === 'reschedule_requested');
 
   const statusClass = {
-    scheduled:   'dp-pill--blue',
-    confirmed:   'dp-pill--blue',
-    pending:     'dp-pill--yellow',
-    completed:   'dp-pill--green',
-    rescheduled: 'dp-pill--grey',
-    cancelled:   'dp-pill--grey',
+    scheduled:            'dp-pill--blue',
+    confirmed:            'dp-pill--blue',
+    pending:              'dp-pill--yellow',
+    completed:            'dp-pill--green',
+    rescheduled:          'dp-pill--grey',
+    cancelled:            'dp-pill--grey',
+    reschedule_requested: 'dp-pill--amber',
+  };
+
+  const statusLabel = {
+    scheduled:            'Confirmed',
+    confirmed:            'Confirmed',
+    pending:              'Pending',
+    completed:            'Completed',
+    rescheduled:          'Rescheduled',
+    cancelled:            'Cancelled',
+    reschedule_requested: 'Reschedule Pending',
   };
 
   return (
@@ -689,6 +730,49 @@ function AppointmentsTab({ appointments, setAppointments }) {
         )}
       </div>
 
+      {/* Reschedule requests — action required */}
+      <div className="dp-card">
+        <h3 className="dp-section-title">
+          Reschedule Requests — Action Required
+          {rescheduleRequests.length > 0 && <span className="dp-badge-pill dp-badge-pill--amber">{rescheduleRequests.length}</span>}
+        </h3>
+        {rescheduleRequests.length === 0 ? (
+          <p className="dp-empty-state">No reschedule requests</p>
+        ) : (
+          <div className="dp-table-wrap">
+            <table className="dp-table">
+              <thead>
+                <tr>
+                  <th>Patient</th>
+                  <th>Original Time</th>
+                  <th>Requested New Time</th>
+                  <th>Reason</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rescheduleRequests.map(a => (
+                  <tr key={a.id}>
+                    <td>{a.patient}</td>
+                    <td>{a.date} · {a.time}</td>
+                    <td className="dp-reschedule-new-time">
+                      {a.requestedSlotStart
+                        ? `${a.requestedSlotStart.split('T')[0]} · ${a.requestedSlotStart.split('T')[1]?.slice(0, 5) ?? ''}`
+                        : '—'}
+                    </td>
+                    <td>{a.reason}</td>
+                    <td className="dp-table-actions">
+                      <button className="dp-btn-accept" onClick={() => handleRescheduleDecision(a.id, 'approve')}>Approve</button>
+                      <button className="dp-btn-decline" onClick={() => handleRescheduleDecision(a.id, 'decline')}>Decline</button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
       {/* All appointments */}
       <div className="dp-card">
         <h3 className="dp-section-title">Appointment Schedule</h3>
@@ -711,7 +795,7 @@ function AppointmentsTab({ appointments, setAppointments }) {
                   <td>{a.patient}</td>
                   <td>{a.date} · {a.time}</td>
                   <td>{a.reason}</td>
-                  <td><span className={`dp-status-pill ${statusClass[a.status] ?? ''}`}>{a.status}</span></td>
+                  <td><span className={`dp-status-pill ${statusClass[a.status] ?? ''}`}>{statusLabel[a.status] ?? a.status}</span></td>
                   <td className="dp-table-actions">
                     {a.status === 'confirmed' && (
                       <>
@@ -949,15 +1033,16 @@ function DoctorPortal() {
       .then(data => {
         if (!data?.appointments) return;
         setAppointments(data.appointments.map(a => ({
-          id:           a.appointment_id,
-          patient:      `${a.patient_first_name} ${a.patient_last_name}`,
-          date:         a.appointment_datetime.split('T')[0],
-          time:         a.appointment_datetime.split('T')[1]?.slice(0, 5) ?? '',
-          reason:       a.reason ?? '',
-          notes:        a.notes ?? '',
-          prescription: a.prescription ?? '',
-          fund:         '',
-          status:       a.status.toLowerCase(),
+          id:                 a.appointment_id,
+          patient:            `${a.patient_first_name} ${a.patient_last_name}`,
+          date:               a.appointment_datetime.split('T')[0],
+          time:               a.appointment_datetime.split('T')[1]?.slice(0, 5) ?? '',
+          reason:             a.reason ?? '',
+          notes:              a.notes ?? '',
+          prescription:       a.prescription ?? '',
+          fund:               '',
+          status:             a.status.toLowerCase(),
+          requestedSlotStart: a.requested_slot_start ?? null,
         })));
       })
       .catch(() => {});

@@ -773,6 +773,24 @@
 .pp-pill--teal   { background: #CCFBF1; color: #0F766E; }
 .pp-pill--grey   { background: #F1F5F9; color: #64748B; }
 .pp-pill--blue   { background: #DBEAFE; color: #1E40AF; }
+.pp-pill--amber  { background: #FEF3C7; color: #92400E; }
+
+.pp-reschedule-requested-time {
+  font-size: 11px;
+  color: #D97706;
+  margin: 4px 0 0;
+  font-weight: 500;
+}
+
+.pp-reschedule-notice {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #92400E;
+  margin-bottom: 12px;
+}
 
 /* ── Buttons ── */
 .pp-btn-primary {
