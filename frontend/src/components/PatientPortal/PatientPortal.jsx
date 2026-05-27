@@ -61,7 +61,7 @@ const IconBell = () => (
   </svg>
 );
 const IconHeart = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="white">
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="#DC2626">
     <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
   </svg>
 );
@@ -1050,7 +1050,7 @@ function AppointmentsTab({ appointments, setAppointments, onBook, onReschedule }
                         </button>
                       )}
                       <button
-                        className="pp-btn-cancel"
+                        className="pp-btn-reschedule"
                         onClick={() => onReschedule(a.id, a.providerId)}
                       >
                         Reschedule
@@ -1319,6 +1319,7 @@ function HealthProfileTab({ patient, onSave }) {
 function RatingModal({ appointment, onClose }) {
   const [hovered, setHovered] = useState(0);
   const [selected, setSelected] = useState(0);
+  const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const token = localStorage.getItem('token');
@@ -1334,6 +1335,7 @@ function RatingModal({ appointment, onClose }) {
           provider_id: appointment.providerId,
           appointment_id: appointment.id,
           rating: selected,
+          comment: comment.trim() || null,
         }),
       });
       setDone(true);
@@ -1385,6 +1387,14 @@ function RatingModal({ appointment, onClose }) {
                 {['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][selected]}
               </p>
             )}
+            <textarea
+              className="pp-rating-comment"
+              rows={3}
+              placeholder="Share your experience (optional) — your review may appear on our home page"
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              maxLength={300}
+            />
             <div className="pp-modal-actions">
               <button className="pp-btn-outline" onClick={onClose} disabled={submitting}>Cancel</button>
               <button className="pp-btn-primary" onClick={submit} disabled={!selected || submitting}>

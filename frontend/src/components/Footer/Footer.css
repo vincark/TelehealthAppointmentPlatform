@@ -32,7 +32,8 @@
   justify-content: center;
   width: 38px;
   height: 38px;
-  background: var(--color-primary);
+  background: #fff;
+  border: 2px solid var(--color-primary);
   border-radius: var(--radius-md);
 }
 

@@ -43,7 +43,8 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  background: #fff;
+  border: 2px solid var(--color-primary);
   border-radius: 10px;
   flex-shrink: 0;
 }
