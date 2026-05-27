@@ -14,10 +14,10 @@ router.post('/create-payment-intent', verifyToken, verifyRole([1]), async (req, 
   try {
     // Make sure the appointment exists and belongs to this patient
     const appointment = await pool.query(
-      `SELECT a.*, pp.consultation_fee 
-       FROM appointments a
-       JOIN provider_profiles pp ON a.provider_id = pp.provider_id
-       WHERE a.appointment_id = $1 AND a.patient_id = $2`,
+      `SELECT a.*, COALESCE(a.fee, pp.base_fee, 75) AS consultation_fee
+      FROM appointments a
+      LEFT JOIN provider_profiles pp ON a.provider_id = pp.provider_id
+      WHERE a.appointment_id = $1 AND a.patient_id = $2`,
       [appointment_id, req.user.user_id]
     );
 
@@ -33,8 +33,8 @@ router.post('/create-payment-intent', verifyToken, verifyRole([1]), async (req, 
       return res.status(400).json({ message: 'You can only pay for confirmed appointments' });
     }
 
-    // Fee comes from the database automatically — no user input needed!
-    const amount = appointment.rows[0].consultation_fee;
+    // Convert dollars from the database to cents for Stripe (e.g. $70 → 7000)
+    const amount = Math.round(parseFloat(appointment.rows[0].consultation_fee) * 100);
 
     // Create a payment intent with Stripe
     const paymentIntent = await stripe.paymentIntents.create({

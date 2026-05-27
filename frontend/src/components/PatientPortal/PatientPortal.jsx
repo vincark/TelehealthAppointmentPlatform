@@ -1536,13 +1536,13 @@ function PatientPortal() {
           id:             a.appointment_id,
           providerId:   a.provider_id,
           doctor:       `Dr. ${a.provider_first_name} ${a.provider_last_name}`,
-          date:         a.appointment_datetime.split('T')[0],
-          time:         a.appointment_datetime.split('T')[1]?.slice(0, 5) ?? '',
+          date: (() => { const dt = new Date(a.appointment_datetime); return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`; })(),
+          time: (() => { const dt = new Date(a.appointment_datetime); return `${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`; })(),
           reason:       a.reason ?? '',
           notes:        a.notes ?? '',
           prescription:   a.prescription ?? '',
           status:         a.status.toLowerCase(),
-          fee:            a.consultation_fee ? `${a.consultation_fee / 100}` : null,
+          fee:            a.consultation_fee ? `${a.consultation_fee}` : null,
           paymentStatus:  a.payment_status ?? 'Unpaid',
         })));
       })
@@ -1589,7 +1589,7 @@ function PatientPortal() {
             notes:        a.notes ?? '',
             prescription: a.prescription ?? '',
             status:       a.status.toLowerCase(),
-            fee:          a.consultation_fee ? `${a.consultation_fee / 100}` : null,
+            fee:          a.consultation_fee ? `${a.consultation_fee}` : null,
             paymentStatus: a.payment_status ?? 'Unpaid',
           };
         }));

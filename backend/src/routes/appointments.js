@@ -36,13 +36,25 @@ router.post('/book', verifyToken, verifyRole([1]), async (req, res) => {
 
     const appointment_datetime = slot.rows[0].slot_start;
 
+    // Calculate fee based on time of day and day of week
+    const baseFeeResult = await pool.query(
+      `SELECT COALESCE(base_fee, 75) AS base_fee FROM provider_profiles WHERE provider_id = $1`,
+      [provider_id]
+    );
+    const baseFee = parseFloat(baseFeeResult.rows[0]?.base_fee ?? 75);
+    const slotDate = new Date(appointment_datetime);
+    const day = slotDate.getDay(); // 0=Sun, 6=Sat
+    const hour = slotDate.getHours();
+    const isAfterHours = day === 0 || day === 6 || hour < 8 || hour >= 18;
+    const fee = isAfterHours ? Math.round(baseFee * 1.2) : baseFee;
+
     // Create the appointment
     const newAppointment = await pool.query(
       `INSERT INTO appointments 
-        (patient_id, provider_id, reason, notes, appointment_datetime)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [patient_id, provider_id, reason, notes, appointment_datetime]
+        (patient_id, provider_id, reason, notes, appointment_datetime, fee)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *`,
+      [patient_id, provider_id, reason, notes, appointment_datetime, fee]
     );
 
     // Mark the slot as booked
@@ -106,7 +118,7 @@ router.get('/my', verifyToken, async (req, res) => {
         `SELECT a.*, 
           u.first_name AS provider_first_name, 
           u.last_name AS provider_last_name,
-          pp.consultation_fee
+          COALESCE(a.fee, pp.base_fee, 75) AS consultation_fee
         FROM appointments a
         JOIN users u ON a.provider_id = u.user_id
         LEFT JOIN provider_profiles pp ON a.provider_id = pp.provider_id
