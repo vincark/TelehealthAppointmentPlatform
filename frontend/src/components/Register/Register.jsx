@@ -98,6 +98,9 @@ function Register() {
       <div className="register-panel-right">
         <div className="register-card">
 
+          {/* Back to home — mobile only */}
+          <a href="/" className="reg-back-home-mobile">← Back to home</a>
+
           {/* Header */}
           <div className="register-header">
             <span className="register-logo" aria-hidden="true">

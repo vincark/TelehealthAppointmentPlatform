@@ -93,6 +93,9 @@ function Login() {
       <div className="login-panel-right">
         <div className="login-card">
 
+          {/* Back to home — mobile only */}
+          <a href="/" className="login-back-home-mobile">← Back to home</a>
+
           {/* Logo */}
           <div className="login-logo-wrap">
             <span className="login-logo-circle" aria-hidden="true">

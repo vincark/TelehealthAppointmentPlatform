@@ -1,33 +1,15 @@
+import { useState } from 'react';
 import './Navbar.css';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../../hooks/useTheme';
 import { useLocation } from 'react-router-dom';
 
-/**
- * Top navigation bar.
- * - Logo on the left
- * - Nav links in the middle (My Portal removed — auth-protected feature)
- * - Theme toggle + Sign In + Create Account on the right
- */
 function Navbar() {
   const { theme, toggleTheme } = useTheme();
   const { pathname } = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  function handleBookNow(e) {
-    e.preventDefault();
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        if (user.role_id === 1) {
-          window.location.href = '/patient-portal?openBooking=1';
-          return;
-        }
-      } catch {}
-    }
-    window.location.href = '/login';
-  }
+  function closeMenu() { setMenuOpen(false); }
 
   return (
     <header className="navbar">
@@ -43,36 +25,57 @@ function Navbar() {
           <span className="navbar-brand-name">Telehealth</span>
         </a>
 
-        {/* === MIDDLE: Nav links (My Portal removed) === */}
+        {/* === MIDDLE: Nav links (desktop) === */}
         <nav className="navbar-links" aria-label="Primary">
           <a href="/" className={`nav-link${pathname === '/' ? ' nav-link-active' : ''}`}>Home</a>
           <a href="/providers" className={`nav-link${pathname === '/providers' ? ' nav-link-active' : ''}`}>Providers</a>
           <a href="/help" className={`nav-link${pathname === '/help' ? ' nav-link-active' : ''}`}>Help</a>
-
         </nav>
 
         {/* === RIGHT: Theme toggle + Auth buttons === */}
         <div className="navbar-actions">
-
-          {/* Theme toggle */}
           <button
             type="button"
             className="navbar-theme-toggle"
             onClick={toggleTheme}
             aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
-            title={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
           >
-            {theme === 'light' ? (
-              <Moon size={18} aria-hidden="true" />
-            ) : (
-              <Sun size={18} aria-hidden="true" />
-            )}
+            {theme === 'light' ? <Moon size={18} aria-hidden="true" /> : <Sun size={18} aria-hidden="true" />}
           </button>
 
-          <a href="/login" className="navbar-signin">Sign In</a>
-          <a href="/register" className="navbar-cta">Create Account</a>
+          <a href="/login" className="navbar-signin navbar-desktop-only">Sign In</a>
+          <a href="/register" className="navbar-cta navbar-desktop-only">Create Account</a>
+
+          {/* Hamburger — mobile only */}
+          <button
+            className="navbar-hamburger"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Open menu"
+          >
+            <span /><span /><span />
+          </button>
         </div>
 
+      </div>
+
+      {/* === MOBILE DRAWER === */}
+      {menuOpen && (
+        <div className="navbar-overlay" onClick={closeMenu} aria-hidden="true" />
+      )}
+      <div className={`navbar-drawer${menuOpen ? ' navbar-drawer--open' : ''}`} role="dialog" aria-modal="true">
+        <div className="navbar-drawer-header">
+          <span className="navbar-brand-name">Telehealth</span>
+          <button className="navbar-drawer-close" onClick={closeMenu} aria-label="Close menu">✕</button>
+        </div>
+        <nav className="navbar-drawer-links" aria-label="Mobile navigation">
+          <a href="/" className={`navbar-drawer-link${pathname === '/' ? ' navbar-drawer-link--active' : ''}`} onClick={closeMenu}>Home</a>
+          <a href="/providers" className={`navbar-drawer-link${pathname === '/providers' ? ' navbar-drawer-link--active' : ''}`} onClick={closeMenu}>Providers</a>
+          <a href="/help" className={`navbar-drawer-link${pathname === '/help' ? ' navbar-drawer-link--active' : ''}`} onClick={closeMenu}>Help</a>
+        </nav>
+        <div className="navbar-drawer-actions">
+          <a href="/login" className="navbar-drawer-signin" onClick={closeMenu}>Sign In</a>
+          <a href="/register" className="navbar-drawer-cta" onClick={closeMenu}>Create Account</a>
+        </div>
       </div>
     </header>
   );

@@ -460,6 +460,10 @@
 }
 
 /* ── Responsive ── */
+.login-back-home-mobile {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .login-panel-left {
     display: none;
@@ -468,6 +472,18 @@
   .login-panel-right {
     padding: var(--space-8) var(--space-6);
   }
+
+  .login-back-home-mobile {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--color-text);
+    margin-bottom: var(--space-6);
+    transition: color 0.15s;
+  }
+  .login-back-home-mobile:hover { color: var(--color-primary-dark); }
 }
 
 @media (max-width: 640px) {
